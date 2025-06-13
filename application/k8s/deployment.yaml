@@ -1,0 +1,232 @@
+# e-Commerce - Database
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: codbex-ecommerce-sa
+  namespace: prod
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: codbex-ecommerce-database-claim
+  namespace: prod
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: codbex-ecommerce-documents-claim
+  namespace: prod
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: codbex-ecommerce-database
+  namespace: prod
+  labels:
+    app: codbex-ecommerce-database
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: codbex-ecommerce-database
+  template:
+    metadata:
+      labels:
+        app: codbex-ecommerce-database
+    spec:
+      serviceAccountName: codbex-ecommerce-sa
+      containers:
+        - name: postgres
+          image: postgres:17
+          volumeMounts:
+          - name: codbex-ecommerce-database-volume
+            mountPath: /var/lib/postgresql/data
+          env:
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: codbex-ecommerce-database-credentials
+                  key: username
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: codbex-ecommerce-database-credentials
+                  key: password
+          ports:
+            - name: jdbc
+              containerPort: 5432
+              protocol: TCP
+      volumes:
+        - name: codbex-ecommerce-database-volume
+          persistentVolumeClaim:
+            claimName: codbex-ecommerce-database-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: codbex-ecommerce-database
+  namespace: prod
+  labels:
+    app: codbex-ecommerce-database
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5432
+      targetPort: jdbc
+      protocol: TCP
+      name: jdbc
+  selector:
+    app: codbex-ecommerce-database
+--- 
+# e-Commerce - Application
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: codbex-ecommerce
+  namespace: prod
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: codbex-ecommerce
+  template:
+    metadata:
+      labels:
+        app: codbex-ecommerce
+    spec:
+      initContainers:
+        - name: check-db-ready
+          image: postgres:17
+          command:
+            - sh
+            - -c
+            - until pg_isready -h codbex-ecommerce-database -p 5432; do echo waiting for database; sleep 2; done;
+      containers:
+        - name: codbex-ecommerce
+          image: ghcr.io/codbex/codbex-ecommerce:latest
+          imagePullPolicy: Always
+          volumeMounts:
+          - name: codbex-ecommerce-documents-volume
+            mountPath: /target/dirigible/cms/
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1"
+            limits:
+              memory: "4Gi"
+              cpu: "2"
+          ports:
+            - name: http
+              containerPort: 80
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: common,cognito,app-default
+            - name: DIRIGIBLE_COGNITO_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: codbex-ecommerce-cognito-credentials
+                  key: clientId
+            - name: DIRIGIBLE_COGNITO_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: codbex-ecommerce-cognito-credentials
+                  key: clientSecret
+            - name: DIRIGIBLE_COGNITO_DOMAIN
+              valueFrom:
+                secretKeyRef:
+                  name: codbex-ecommerce-cognito-credentials
+                  key: domain
+            - name: DIRIGIBLE_COGNITO_REGION_ID
+              valueFrom:
+                secretKeyRef:
+                  name: codbex-ecommerce-cognito-credentials
+                  key: regionId
+            - name: DIRIGIBLE_COGNITO_USER_POOL_ID
+              valueFrom:
+                secretKeyRef:
+                  name: codbex-ecommerce-cognito-credentials
+                  key: userPoolId
+            - name: DIRIGIBLE_HOST
+              value: https://ecommerce.eu1.codbex.com
+            - name: DIRIGIBLE_MULTI_TENANT_MODE
+              value: "false"
+            - name: DIRIGIBLE_DATABASE_CUSTOM_DATASOURCES
+              value: PostgreSQL
+            - name: DIRIGIBLE_DATABASE_DATASOURCE_NAME_DEFAULT
+              value: PostgreSQL
+            - name: PostgreSQL_DRIVER
+              value: org.postgresql.Driver
+            - name: PostgreSQL_URL
+              valueFrom:
+                secretKeyRef:
+                  name: codbex-ecommerce-database-credentials
+                  key: jdbc-url
+            - name: PostgreSQL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: codbex-ecommerce-database-credentials
+                  key: username
+            - name: PostgreSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: codbex-ecommerce-database-credentials
+                  key: password
+      volumes:
+        - name: codbex-ecommerce-documents-volume
+          persistentVolumeClaim:
+            claimName: codbex-ecommerce-documents-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: codbex-ecommerce
+  namespace: prod
+  labels:
+    app: codbex-ecommerce
+spec:
+  ports:
+    - name: http
+      port: 80
+  type: ClusterIP
+  selector:
+    app: codbex-ecommerce
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    # nginx.ingress.kubernetes.io/proxy-body-size: 10m
+  name: codbex-ecommerce
+  namespace: prod
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: ecommerce.eu1.codbex.com
+      http:
+        paths:
+          - backend:
+              service:
+                name: codbex-ecommerce
+                port:
+                  number: 80
+            path: /
+            pathType: Prefix
+  tls:
+    - hosts:
+        - ecommerce.eu1.codbex.com
+      secretName: codbex-ecommerce-tls-secret
