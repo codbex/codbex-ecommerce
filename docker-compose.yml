@@ -1,0 +1,29 @@
+name: codbex-ecommerce
+
+services:
+
+  database:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ecommerce
+      POSTGRES_PASSWORD: ecommerce
+    volumes:
+      - ./postgresql-data:/var/lib/postgresql/data
+
+  application:
+    image: ghcr.io/codbex/codbex-atlas:2.59.0
+    ports:
+      - "8080:80"
+    environment:
+      DIRIGIBLE_DATABASE_CUSTOM_DATASOURCES: PostgreSQL
+      DIRIGIBLE_DATABASE_DATASOURCE_NAME_DEFAULT: PostgreSQL
+      PostgreSQL_DRIVER: org.postgresql.Driver
+      PostgreSQL_URL: jdbc:postgresql://database:5432/ecommerce
+      PostgreSQL_USERNAME: ecommerce
+      PostgreSQL_PASSWORD: ecommerce
+    volumes:
+      - ./workspace:/target/dirigible/repository/root/users/admin/workspace/
+      - ./platform-git:/target/dirigible/repository/.git/
+      - ./cms:/target/dirigible/cms/
+    depends_on:
+      - database

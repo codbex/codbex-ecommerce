@@ -1,0 +1,52 @@
+name: Release - Module
+
+on:
+  workflow_dispatch:
+    inputs:
+      release-version:
+        description: Release Version
+        required: true
+        default: 1.0.0
+
+run-name: 'version set to ${{ inputs.release-version }} for release'
+
+jobs:
+  module:
+    uses: codbex/codbex-infra/.github/workflows/module-release.yaml@main
+    with:
+      packages: |
+        - workspace/codbex-ecommerce
+      packages-build: |
+        - workspace/codbex-ecommerce
+      release-version: ${{ inputs.release-version }}
+      release-content: |
+        ## codbex-ecommerce - ${{ inputs.release-version }}
+  
+        e-Commerce Backoffice Management Application
+  
+        ## Installation
+  
+        ```
+        npm install @codbex/codbex-ecommerce@${{ inputs.release-version }}
+        ```
+  
+        ## Access points:
+  
+        - [/services/web/dashboard/](http://localhost:8080/services/web/dashboard/) - Dashboard
+    secrets: inherit
+
+  application:
+    uses: codbex/codbex-infra/.github/workflows/application-release.yaml@main
+    with:
+      application-name: codbex-ecommerce
+      install-dependencies: true
+      dockerfile-location: application/
+      release-version: ${{ inputs.release-version }}
+      release-create-branch: false
+    secrets: inherit
+  deploy:
+    needs: [module, application]
+    uses: ./.github/workflows/deploy.yaml
+    with:
+      application-version: ${{ inputs.release-version }}
+    secrets: inherit

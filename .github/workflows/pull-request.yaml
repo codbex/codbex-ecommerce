@@ -1,0 +1,37 @@
+name: Pull Request - Main
+
+on:
+  pull_request:
+    branches: 
+      - main
+
+jobs:
+  module:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Modules
+        uses: codbex/action-build-modules@main
+        with:
+          packages: |
+            - workspace/codbex-ecommerce
+          npmrc: |
+            @codbex:registry=https://npm.pkg.github.com
+            //npm.pkg.github.com/:_authToken=${{ secrets.GH_TOKEN }}
+  application:
+    needs: [module]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Application
+        uses: codbex/action-build-application@main
+        with:
+          name: codbex-ecommerce
+          dockerfile-location: ./application
+          npmrc: |
+            @codbex:registry=https://npm.pkg.github.com
+            //npm.pkg.github.com/:_authToken=${{ secrets.GH_TOKEN }}

@@ -1,0 +1,32 @@
+name: Deploy to Kubernetes
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        default: latest
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Set up Kubernetes
+        uses: azure/setup-kubectl@v3
+        with:
+          version: 'latest'
+
+      - name: Create .kube directory
+        run: mkdir -p $HOME/.kube
+
+      - name: Authenticate with Kubernetes
+        env:
+          KUBECONFIG: ${{ secrets.KUBECONFIG }}
+        run: echo "${{ secrets.KUBECONFIG }}" > $HOME/.kube/config
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl scale deployments/codbex-ecommerce --replicas=0 -n prod
+          kubectl set image deployment/codbex-ecommerce codbex-ecommerce=ghcr.io/codbex/codbex-ecommerce:${{ inputs.version }} -n prod
+          kubectl scale deployments/codbex-ecommerce --replicas=1 -n prod
