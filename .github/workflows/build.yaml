@@ -33,7 +33,7 @@ jobs:
       - name: Git Commit & Push package version update
         run: |
           git config user.name ${{secrets.GH_USERNAME}}
-          git config user.email ${{secrets.GH_USER_EMAIL}}
+          git config user.email ${{secrets.GH_EMAIL}}
           git add workspace/codbex-ecommerce/package.json
           git commit -m "Updates package version - ci skip"
           echo "Git Push"
