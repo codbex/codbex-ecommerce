@@ -1,0 +1,63 @@
+name: Build - Main
+
+permissions:
+    id-token: write
+    contents: write
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  module:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, 'ci skip')"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
+
+      - name: Build Modules
+        uses: codbex/action-build-modules@main
+        with:
+          packages: |
+            - workspace/codbex-ecommerce
+          npmrc: |
+            @codbex:registry=https://npm.pkg.github.com
+            //npm.pkg.github.com/:_authToken=${{ secrets.GH_TOKEN }}
+          publish: true
+          version: patch
+
+      - name: Git Commit & Push package version update
+        run: |
+          git config user.name ${{secrets.GH_USERNAME}}
+          git config user.email ${{secrets.GH_USER_EMAIL}}
+          git add workspace/codbex-ecommerce/package.json
+          git commit -m "Updates package version - ci skip"
+          echo "Git Push"
+          git push origin main
+  application:
+    needs: [module]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Application
+        uses: codbex/action-build-application@main
+        with:
+          name: codbex-ecommerce
+          dockerfile-location: ./application
+          docker-username: ${{ secrets.GH_USERNAME }}
+          docker-password: ${{ secrets.GH_TOKEN }}
+          docker-organization: codbex
+          npmrc: |
+            @codbex:registry=https://npm.pkg.github.com
+            //npm.pkg.github.com/:_authToken=${{ secrets.GH_TOKEN }}
+  deploy:
+    if: "!contains(github.event.head_commit.message, 'ci skip')"
+    needs: [application]
+    uses: ./.github/workflows/deploy.yaml
+    secrets: inherit
