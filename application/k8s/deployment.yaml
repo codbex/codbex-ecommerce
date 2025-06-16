@@ -124,8 +124,8 @@ spec:
             mountPath: /target/dirigible/cms/
           resources:
             requests:
-              memory: "2Gi"
-              cpu: "1"
+              memory: "0.25Gi"
+              cpu: "0.125"
             limits:
               memory: "4Gi"
               cpu: "2"
