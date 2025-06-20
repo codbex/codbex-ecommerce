@@ -8,6 +8,9 @@
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
   },
+  "dependencies": {
+    "@codbex/codbex-products": "0.8.0"
+  },
   "scripts": {
     "build": "tsc"
   }
