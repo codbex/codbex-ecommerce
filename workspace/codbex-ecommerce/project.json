@@ -1,6 +1,13 @@
 {
     "guid": "codbex-ecommerce",
-    "dependencies": [],
+    "dependencies": [
+        {
+            "guid": "codbex-products",
+            "type": "git",
+            "url": "https://github.com/codbex/codbex-products.git",
+            "branch": "main"
+        }
+    ],
     "actions": [
         {
             "name": "Build TypeScript",
