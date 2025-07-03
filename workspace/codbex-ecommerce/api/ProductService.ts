@@ -1,5 +1,6 @@
 import { ProductRepository as ProductDao } from "codbex-products/gen/codbex-products/dao/Products/ProductRepository";
 import { ProductCategoryRepository as CategoryDao } from "codbex-products/gen/codbex-products/dao/Settings/ProductCategoryRepository";
+import { ProductImageRepository as ImageDao } from "codbex-products/gen/codbex-products/dao/Products/ProductImageRepository";
 import { ManufacturerRepository as ManufacturerDao } from "codbex-partners/gen/codbex-partners/dao/Manufacturers/ManufacturerRepository";
 
 import { Controller, Get } from "sdk/http";
@@ -10,11 +11,13 @@ class ProductService {
     private readonly productDao;
     private readonly productCategoryDao;
     private readonly manufacturerDao;
+    private readonly productImageDao;
 
     constructor() {
         this.productDao = new ProductDao();
         this.productCategoryDao = new CategoryDao();
         this.manufacturerDao = new ManufacturerDao();
+        this.productImageDao = new ImageDao();
     }
 
     @Get("/categories")
@@ -44,17 +47,34 @@ class ProductService {
     @Get("/products")
     public allProducts() {
 
-        const allProducts = ProductDao.findAll()
-            .map(product => ({
-                id: product.Id,
-                title: product.Title,
-                category: product.Category,
-                price: product.Price,
-                availableForSale: product.ForSale,
-                featuredImage: product.Image,
-            }));
+        const allProducts = this.productDao.findAll();
 
-        return allProducts;
+        const productIds = allProducts.map(product => product.Id);
+
+        const featuredImages = this.productImageDao.findAll({
+            $filter: {
+                equals: { IsFeature: true },
+                in: { Product: productIds }
+            }
+        });
+
+        const featuredImageMap = new Map<string, typeof featuredImages[0]>();
+
+        for (const image of featuredImages) {
+            if (!featuredImageMap.has(image.Product)) {
+                featuredImageMap.set(image.Product, image);
+            }
+        }
+
+        const productsResponse = allProducts.map(product => ({
+            id: product.Id,
+            title: product.Title,
+            price: product.Price,
+            category: product.Category,
+            featuredImage: featuredImageMap.get(product.Id) ?? null
+        }));
+
+        return productsResponse;
     }
 
     @Get("/products/:id")
@@ -64,6 +84,16 @@ class ProductService {
 
         const product = this.productDao.findById(productId);
 
+        const images = this.productImageDao.findAll({
+            $filter: {
+                equals: {
+                    Product: productId
+                }
+            }
+        });
+
+        const featuredImage = images.find(image => image.IsFeature === true);
+
         return {
             "id": product.Id,
             "title": product.Title,
@@ -71,45 +101,8 @@ class ProductService {
             "brand": product.Manufacturer,
             "description": product.Description,
             "price": product.Price,
-            "availableForSale": product.ForSale,
-            "featuresImage": product.Image
+            "featuredImage": featuredImage,
+            "images": images
         };
-    }
-
-    @Get("/products/:category/:manufacturer")
-    public filteredProducts(_: any, ctx: any) {
-
-        const categoryId = ctx.pathParameters.category;
-        const manufacturerId = ctx.pathParameters.manufacturerId;
-
-        let filter = {};
-
-        if (categoryId && manufacturerId) {
-            filter = {
-                Manufacturer: manufacturerId,
-                Category: categoryId
-            };
-        } else if (categoryId) {
-            filter = {
-                Category: categoryId
-            };
-        } else if (manufacturerId) {
-            filter = {
-                Manufacturer: manufacturerId
-            };
-        }
-
-        const rawProducts = this.productDao.findAll({
-            $filter: { equals: filter }
-        });
-
-        const products = rawProducts.map(product => ({
-            id: product.Id,
-            title: product.Title,
-            image: product.Image,
-            price: product.Price
-        }));
-
-        return products;
     }
 }
