@@ -1,13 +1,44 @@
 import { ProductRepository as ProductDao } from "codbex-products/gen/codbex-products/dao/Products/ProductRepository";
+import { ProductCategoryRepository as CategoryDao } from "codbex-products/gen/codbex-products/dao/Settings/ProductCategoryRepository";
+import { ManufacturerRepository as ManufacturerDao } from "codbex-partners/gen/codbex-partners/dao/Manufacturers/ManufacturerRepository";
+
 import { Controller, Get } from "sdk/http";
 
 @Controller
 class ProductService {
 
     private readonly productDao;
+    private readonly productCategoryDao;
+    private readonly manufacturerDao;
 
     constructor() {
         this.productDao = new ProductDao();
+        this.productCategoryDao = new CategoryDao();
+        this.manufacturerDao = new ManufacturerDao();
+    }
+
+    @Get("/categories")
+    public categoriesData() {
+
+        const allCategories = this.productCategoryDao.findAll()
+            .map(category => ({
+                id: category.Id,
+                title: category.Name
+            }));
+
+        return allCategories;
+    }
+
+    @Get("/brands")
+    public brandsData() {
+
+        const allBrands = this.manufacturerDao.findAll()
+            .map(brand => ({
+                id: brand.Id,
+                name: brand.Name
+            }));
+
+        return allBrands;
     }
 
     @Get("/products")
@@ -17,8 +48,10 @@ class ProductService {
             .map(product => ({
                 id: product.Id,
                 title: product.Title,
-                image: product.Image,
-                price: product.Price
+                category: product.Category,
+                price: product.Price,
+                availableForSale: product.ForSale,
+                featuredImage: product.Image,
             }));
 
         return allProducts;
@@ -34,11 +67,12 @@ class ProductService {
         return {
             "id": product.Id,
             "title": product.Title,
-            "description": product.Description,
-            "image": product.Image,
-            "price": product.Price,
             "category": product.Category,
-            "manufacturer": product.Manufacturer
+            "brand": product.Manufacturer,
+            "description": product.Description,
+            "price": product.Price,
+            "availableForSale": product.ForSale,
+            "featuresImage": product.Image
         };
     }
 
