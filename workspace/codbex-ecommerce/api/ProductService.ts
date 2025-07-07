@@ -82,7 +82,7 @@ class ProductService {
         return productsResponse;
     }
 
-    @Get("/product/:id")
+    @Get("/product/:productId")
     public productData(_: any, ctx: any) {
 
         const productId = ctx.pathParameters.productId;
