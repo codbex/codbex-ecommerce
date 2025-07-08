@@ -5,11 +5,12 @@
   "dependencies": {
     "@codbex/codbex-cities": "^0.6.0",
     "@codbex/codbex-ecommerce": "^1.0.0",
-    "@codbex/codbex-products": "^0.9.0",
+    "@codbex/codbex-products": "^0.10.0",
     "@codbex/codbex-navigation-groups": "^0.3.0",
     "@codbex/ide-branding": "^0.1.0",
-    "@codbex/codbex-inventory": "^0.8.0",
+    "@codbex/codbex-inventory": "^0.9.0",
     "@codbex/codbex-number-generator": "^0.4.0",
-    "@codbex/codbex-number-generator-data": "^0.4.1"
+    "@codbex/codbex-number-generator-data": "^0.4.1",
+    "@codbex/custom-hayat-data": "^0.1.0"
   }
 }
