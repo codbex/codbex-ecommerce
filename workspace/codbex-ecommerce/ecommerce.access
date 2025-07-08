@@ -1,0 +1,12 @@
+{
+    "constraints": [
+        {
+            "path": "/public/js/documents/api/documents.js/preview",
+            "method": "GET",
+            "scope": "HTTP",
+            "roles": [
+                "PUBLIC"
+            ]
+        }
+    ]
+}
