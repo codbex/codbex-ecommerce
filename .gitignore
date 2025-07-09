@@ -20,6 +20,7 @@
 /out/
 
 # dependencies
+package-lock.json
 node_modules/
 application/node_modules/
 /.pnp
