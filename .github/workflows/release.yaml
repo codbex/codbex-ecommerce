@@ -48,5 +48,5 @@ jobs:
     needs: [module, application]
     uses: ./.github/workflows/deploy.yaml
     with:
-      application-version: ${{ inputs.release-version }}
+      version: ${{ inputs.release-version }}
     secrets: inherit
