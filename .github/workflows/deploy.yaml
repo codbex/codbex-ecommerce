@@ -28,5 +28,4 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           kubectl scale deployments/codbex-ecommerce --replicas=0 -n prod
-          kubectl set image deployment/codbex-ecommerce codbex-ecommerce=ghcr.io/codbex/codbex-ecommerce:${{ inputs.version }} -n prod
-          kubectl scale deployments/codbex-ecommerce --replicas=1 -n prod
+          kubectl apply -f application/k8s/deployment.yaml
