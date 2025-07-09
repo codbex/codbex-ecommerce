@@ -14,8 +14,8 @@ jobs:
   module:
     uses: codbex/codbex-infra/.github/workflows/module-release.yaml@main
     with:
-      packages: workspace/codbex-ecommerce
-      packages-build: workspace/codbex-ecommerce
+      packages: ./workspace/codbex-ecommerce
+      packages-build: ./workspace/codbex-ecommerce
       release-version: ${{ inputs.release-version }}
       release-content: |
         ## codbex-ecommerce - ${{ inputs.release-version }}
