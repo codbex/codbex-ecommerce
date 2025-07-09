@@ -1,34 +1,17 @@
-import { ProductRepository as ProductDao } from "codbex-products/gen/codbex-products/dao/Products/ProductRepository";
-import { ProductCategoryRepository as CategoryDao } from "codbex-products/gen/codbex-products/dao/Settings/ProductCategoryRepository";
-import { ProductImageRepository as ImageDao } from "codbex-products/gen/codbex-products/dao/Products/ProductImageRepository";
-import { ManufacturerRepository as ManufacturerDao } from "codbex-partners/gen/codbex-partners/dao/Manufacturers/ManufacturerRepository";
-
-import { Controller, Get, response } from "sdk/http";
+import { Controller, Get } from "sdk/http";
 import { query } from "sdk/db";
 
 @Controller
 class ProductService {
-
-    private readonly productDao;
-    private readonly productCategoryDao;
-    private readonly manufacturerDao;
-    private readonly productImageDao;
-
-    constructor() {
-        this.productDao = new ProductDao();
-        this.productCategoryDao = new CategoryDao();
-        this.manufacturerDao = new ManufacturerDao();
-        this.productImageDao = new ImageDao();
-    }
 
     @Get("/categories")
     public categoriesData() {
 
         const sql = `
     SELECT 
-    pc.PRODUCTCATEGORY_ID AS id,
-    pc.PRODUCTCATEGORY_NAME AS name,
-    COUNT(p.PRODUCT_ID) AS prcount
+    pc.PRODUCTCATEGORY_ID AS ID,
+    pc.PRODUCTCATEGORY_NAME AS NAME,
+    COUNT(p.PRODUCT_ID) AS PRCOUNT
 FROM 
     CODBEX_PRODUCTCATEGORY pc
 LEFT JOIN 
@@ -37,9 +20,8 @@ LEFT JOIN
 GROUP BY 
     pc.PRODUCTCATEGORY_ID, 
     pc.PRODUCTCATEGORY_NAME;
-
-            `;
-        let result = query.execute(sql);
+ `;
+        const result = query.execute(sql);
 
         const categories = result.map(row => ({
             id: row.ID,
@@ -54,14 +36,14 @@ GROUP BY
     public brandsData() {
 
         const sql = `
-    SELECT 
-    MANUFACTURER_ID AS id,
-    MANUFACTURER_NAME AS name
+SELECT 
+    MANUFACTURER_ID AS ID,
+    MANUFACTURER_NAME AS NAME
 FROM
     CODBEX_MANUFACTURER;
             `;
 
-        let result = query.execute(sql);
+        const result = query.execute(sql);
 
         const allBrands = result.map(row => ({
             id: row.ID,
@@ -74,32 +56,63 @@ FROM
     @Get("/products")
     public allProducts() {
 
-        const allProducts = this.productDao.findAll();
+        const productSQL = `
+SELECT 
+    PRODUCT_ID AS ID,
+    PRODUCT_TITLE AS TITLE,
+    PRODUCT_PRICE AS PRICE,
+    PRODUCT_CATEGORY AS CATEGORY
+FROM 
+    CODBEX_PRODUCT
+LIMIT 30;
+`;
+        const products = query.execute(productSQL);
 
-        const productIds = allProducts.map(product => product.Id);
+        const productIds = products.map(p => p.ID);
 
-        const featuredImages = this.productImageDao.findAll({
-            $filter: {
-                equals: { IsFeature: true },
-                in: { Product: productIds }
+        let images = [];
+        if (productIds.length > 0) {
+            const ids = productIds.map(() => '?').join(', ');
+
+            const imagesSQL = `
+    SELECT 
+        PRODUCTIMAGE_PRODUCT AS PRODUCTID,
+        PRODUCTIMAGE_IMAGELINK AS IMAGELINK,
+        PRODUCTIMAGE_ISFEATURE AS ISFEATURE
+    FROM 
+        CODBEX_PRODUCTIMAGE
+    WHERE 
+        PRODUCTIMAGE_PRODUCT IN (${ids});
+    `;
+            images = query.execute(imagesSQL, productIds);
+        }
+
+        const imageMap = new Map();
+        for (const img of images) {
+            const key = img.PRODUCTID;
+
+            if (!imageMap.has(key)) {
+                imageMap.set(key, { featuredImage: null, images: [] });
             }
-        });
+            const entry = imageMap.get(key);
+            entry.images.push(img.IMAGELINK);
 
-        const featuredImageMap = new Map<string, typeof featuredImages[0]>();
-
-        for (const image of featuredImages) {
-            if (!featuredImageMap.has(image.Product)) {
-                featuredImageMap.set(image.Product, image);
+            if (img.ISFEATURE === true && !entry.featuredImage) {
+                entry.featuredImage = img.IMAGELINK;
             }
         }
 
-        const productsResponse = allProducts.map(product => ({
-            id: product.Id,
-            title: product.Title,
-            price: product.Price,
-            category: product.Category,
-            featuredImage: featuredImageMap.get(product.Id) ?? null
-        }));
+        const productsResponse = products.map(p => {
+            const imageData = imageMap.get(p.ID) ?? { featuredImage: null, images: [] };
+            return {
+                id: p.ID,
+                title: p.TITLE,
+                price: p.PRICE,
+                category: p.CATEGORY,
+                featuredImage: imageData.featuredImage,
+                images: imageData.images
+            };
+        });
 
         return productsResponse;
     }
@@ -109,32 +122,44 @@ FROM
 
         const productId = ctx.pathParameters.productId;
 
-        const product = this.productDao.findById(productId);
+        const productSQL = `
+SELECT 
+    PRODUCT_ID AS ID,
+    PRODUCT_TITLE AS TITLE,
+    PRODUCT_CATEGORY AS CATEGORY,
+    PRODUCT_MANUFACTURER AS BRAND,
+    PRODUCT_DESCRIPTION AS DESCRIPTION,
+    PRODUCT_PRICE AS PRICE
+FROM 
+    CODBEX_PRODUCT
+WHERE 
+    PRODUCT_ID = ?;
+`;
 
-        if (!product) {
-            response.setStatus(response.NOT_FOUND);
-            return { message: "Product with that ID doesn't exist!" };
-        }
+        const imagesSQL = `
+SELECT 
+    PRODUCTIMAGE_IMAGELINK AS IMAGELINK,
+    PRODUCTIMAGE_ISFEATURE AS ISFEATURE
+FROM 
+    CODBEX_PRODUCTIMAGE
+WHERE 
+    PRODUCTIMAGE_PRODUCT = ?;
+`;
 
-        const images = this.productImageDao.findAll({
-            $filter: {
-                equals: {
-                    Product: productId
-                }
-            }
-        });
+        const productsResult = query.execute(productSQL, [productId]).at(0);
+        const imagesResult = query.execute(imagesSQL, [productId]);
 
-        const featuredImage = images.find(image => image.IsFeature === true);
+        const featuredImage = imagesResult.find(img => img.ISFEATURE === true);
 
         return {
-            "id": product.Id,
-            "title": product.Title,
-            "category": product.Category,
-            "brand": product.Manufacturer,
-            "description": product.Description,
-            "price": product.Price,
-            "featuredImage": featuredImage,
-            "images": images
+            "id": productsResult.ID,
+            "title": productsResult.TITLE,
+            "category": productsResult.CATEGORY,
+            "brand": productsResult.BRAND,
+            "description": productsResult.DESCRIPTION,
+            "price": productsResult.PRICE,
+            "featuredImage": featuredImage.IMAGELINK,
+            "images": imagesResult
         };
     }
 
@@ -142,39 +167,65 @@ FROM
     public productByCategory(_: any, ctx: any) {
         const categoryId = ctx.pathParameters.categoryId;
 
-        const category = this.productCategoryDao.findById(categoryId);
+        const productSQL = `
+SELECT 
+    PRODUCT_ID AS ID,
+    PRODUCT_TITLE AS TITLE,
+    PRODUCT_PRICE AS PRICE,
+    PRODUCT_CATEGORY AS CATEGORY
+FROM 
+    CODBEX_PRODUCT
+WHERE 
+    PRODUCT_CATEGORY = ?;
+`;
+        const products = query.execute(productSQL, [categoryId]);
 
-        if (!category) {
-            response.setStatus(response.NOT_FOUND);
-            return { message: "Category with that ID doesn't exist!" };
+        const productIds = products.map(p => p.ID);
+
+        let images = [];
+        if (productIds.length > 0) {
+            const ids = productIds.map(() => '?').join(', ');
+
+            const imagesSQL = `
+        SELECT 
+            PRODUCTIMAGE_PRODUCT AS PRODUCTID,
+            PRODUCTIMAGE_IMAGELINK AS IMAGELINK,
+            PRODUCTIMAGE_ISFEATURE AS ISFEATURE
+        FROM 
+            CODBEX_PRODUCTIMAGE
+        WHERE 
+            PRODUCTIMAGE_PRODUCT IN (${ids});
+    `;
+
+            images = query.execute(imagesSQL, productIds);
         }
 
-        const productsByCategory = this.productDao.findAll({ $filter: { equals: { Category: category.Id } } })
+        const imageMap = new Map();
+        for (const img of images) {
+            const key = img.PRODUCTID;
 
-        const productIds = productsByCategory.map(product => product.Id);
-
-        const featuredImages = this.productImageDao.findAll({
-            $filter: {
-                equals: { IsFeature: true },
-                in: { Product: productIds }
+            if (!imageMap.has(key)) {
+                imageMap.set(key, { featuredImage: null, images: [] });
             }
+            const entry = imageMap.get(key);
+            entry.images.push(img.IMAGELINK);
+
+            if (img.ISFEATURE === true && !entry.featuredImage) {
+                entry.featuredImage = img.IMAGELINK;
+            }
+        }
+
+        const productsResponse = products.map(p => {
+            const imageData = imageMap.get(p.ID) ?? { featuredImage: null, images: [] };
+            return {
+                id: p.ID,
+                title: p.TITLE,
+                price: p.PRICE,
+                category: p.CATEGORY,
+                featuredImage: imageData.featuredImage,
+                images: imageData.images
+            };
         });
-
-        const featuredImageMap = new Map<string, typeof featuredImages[0]>();
-
-        for (const image of featuredImages) {
-            if (!featuredImageMap.has(image.Product)) {
-                featuredImageMap.set(image.Product, image);
-            }
-        }
-
-        const productsResponse = productsByCategory.map(product => ({
-            id: product.Id,
-            title: product.Title,
-            price: product.Price,
-            category: product.Category,
-            featuredImage: featuredImageMap.get(product.Id) ?? null
-        }));
 
         return productsResponse;
     }
