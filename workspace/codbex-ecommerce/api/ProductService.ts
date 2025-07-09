@@ -4,6 +4,7 @@ import { ProductImageRepository as ImageDao } from "codbex-products/gen/codbex-p
 import { ManufacturerRepository as ManufacturerDao } from "codbex-partners/gen/codbex-partners/dao/Manufacturers/ManufacturerRepository";
 
 import { Controller, Get, response } from "sdk/http";
+import { query } from "sdk/db";
 
 @Controller
 class ProductService {
@@ -23,18 +24,32 @@ class ProductService {
     @Get("/categories")
     public categoriesData() {
 
-        const allCategories = this.productCategoryDao.findAll()
-            .map(category => {
-                const productsForCategory = this.productDao.findAll({ $filter: { equals: { Category: category.Id } } })
+        const sql = `
+    SELECT 
+    pc.PRODUCTCATEGORY_ID AS id,
+    pc.PRODUCTCATEGORY_NAME AS name,
+    COUNT(p.PRODUCT_ID) AS prcount
+FROM 
+    CODBEX_PRODUCTCATEGORY pc
+LEFT JOIN 
+    CODBEX_PRODUCT p 
+    ON p.PRODUCT_CATEGORY = pc.PRODUCTCATEGORY_ID
+GROUP BY 
+    pc.PRODUCTCATEGORY_ID, 
+    pc.PRODUCTCATEGORY_NAME;
 
-                return {
-                    id: category.Id,
-                    title: category.Name,
-                    productCount: productsForCategory.length
-                }
-            });
+            `;
+        let resultset = query.execute(sql);
 
-        return allCategories;
+        console.log(resultset);
+
+        const categories = resultset.map(row => ({
+            id: row.ID,
+            title: row.NAME,
+            productCount: row.PRCOUNT
+        }));
+
+        return categories;
     }
 
     @Get("/brands")
