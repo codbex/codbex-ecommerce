@@ -39,11 +39,9 @@ GROUP BY
     pc.PRODUCTCATEGORY_NAME;
 
             `;
-        let resultset = query.execute(sql);
+        let result = query.execute(sql);
 
-        console.log(resultset);
-
-        const categories = resultset.map(row => ({
+        const categories = result.map(row => ({
             id: row.ID,
             title: row.NAME,
             productCount: row.PRCOUNT
@@ -55,11 +53,20 @@ GROUP BY
     @Get("/brands")
     public brandsData() {
 
-        const allBrands = this.manufacturerDao.findAll()
-            .map(brand => ({
-                id: brand.Id,
-                name: brand.Name
-            }));
+        const sql = `
+    SELECT 
+    MANUFACTURER_ID AS id,
+    MANUFACTURER_NAME AS name
+FROM
+    CODBEX_MANUFACTURER;
+            `;
+
+        let result = query.execute(sql);
+
+        const allBrands = result.map(row => ({
+            id: row.ID,
+            name: row.NAME
+        }));
 
         return allBrands;
     }
