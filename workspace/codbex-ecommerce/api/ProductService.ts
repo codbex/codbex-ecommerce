@@ -1,5 +1,5 @@
 import { Controller, Get } from "sdk/http";
-import { query } from "sdk/db";
+import { query, sql } from 'sdk/db';
 
 @Controller
 class ProductService {
@@ -34,20 +34,18 @@ class ProductService {
 
     @Get("/brands")
     public brandsData() {
+        const sqlQuery = sql.getDialect()
+            .select()
+            .column('MANUFACTURER_ID')
+            .column('MANUFACTURER_NAME')
+            .from('CODBEX_MANUFACTURER')
+            .build();
 
-        const sql = `
-        SELECT 
-            MANUFACTURER_ID AS ID,
-            MANUFACTURER_NAME AS NAME
-        FROM
-            CODBEX_MANUFACTURER;
-            `;
-
-        const result = query.execute(sql);
+        const result = query.execute(sqlQuery, []);
 
         const allBrands = result.map(row => ({
-            id: row.ID,
-            name: row.NAME
+            id: row.MANUFACTURER_ID,
+            name: row.MANUFACTURER_NAME
         }));
 
         return allBrands;
