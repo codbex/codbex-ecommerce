@@ -9,6 +9,7 @@
     "@codbex/codbex-navigation-groups": "^0.3.0",
     "@codbex/ide-branding": "^0.1.0",
     "@codbex/codbex-inventory": "^0.10.0",
+    "@codbex/codbex-partners": "^0.7.0",
     "@codbex/codbex-number-generator": "^0.4.0",
     "@codbex/codbex-number-generator-data": "^0.4.1",
     "@codbex/custom-hayat-data": "^0.2.0"
