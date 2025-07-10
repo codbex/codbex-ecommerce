@@ -1,36 +1,9 @@
 import { Controller, Get } from "sdk/http";
-import { query, sql, SelectBuilder } from 'sdk/db';
+import { query, sql } from 'sdk/db';
 
 @Controller
 class ProductService {
-
-    //     @Get("/categories")
-    //     public categoriesData() {
-
-    //         const sql = `
-    //         SELECT 
-    //             pc.PRODUCTCATEGORY_ID AS ID,
-    //             pc.PRODUCTCATEGORY_NAME AS NAME,
-    //             COUNT(p.PRODUCT_ID) AS PRCOUNT
-    //         FROM 
-    //             CODBEX_PRODUCTCATEGORY pc
-    //         LEFT JOIN 
-    //             CODBEX_PRODUCT p 
-    //             ON p.PRODUCT_CATEGORY = pc.PRODUCTCATEGORY_ID
-    //         GROUP BY 
-    //             pc.PRODUCTCATEGORY_ID, 
-    //             pc.PRODUCTCATEGORY_NAME;
-    //  `;
-    //         const result = query.execute(sql);
-
-    //         const categories = result.map(row => ({
-    //             id: row.ID,
-    //             title: row.NAME,
-    //             productCount: row.PRCOUNT
-    //         }));
-
-    //         return categories;
-    //     }
+    
     @Get("/categories")
     public categoriesData() {
         const categoryQuery = sql.getDialect()
@@ -67,8 +40,6 @@ class ProductService {
             .build();
 
         const result = query.execute(sqlQuery, []);
-
-        console.log(JSON.stringify(result));
 
         const allBrands = result.map(row => ({
             id: row.MANUFACTURER_ID,
