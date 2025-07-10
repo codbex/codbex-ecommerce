@@ -3,7 +3,7 @@ import { query, sql } from 'sdk/db';
 
 @Controller
 class ProductService {
-    
+
     @Get("/categories")
     public categoriesData() {
         const categoryQuery = sql.getDialect()
@@ -18,8 +18,6 @@ class ProductService {
             .build();
 
         const categoryResult = query.execute(categoryQuery, []);
-
-        console.log(JSON.stringify(categoryResult));
 
         const categories = categoryResult.map(row => ({
             id: row.PRODUCTCATEGORY_ID,
@@ -39,9 +37,9 @@ class ProductService {
             .from('CODBEX_MANUFACTURER')
             .build();
 
-        const result = query.execute(sqlQuery, []);
+        const brandsResult = query.execute(sqlQuery, []);
 
-        const allBrands = result.map(row => ({
+        const allBrands = brandsResult.map(row => ({
             id: row.MANUFACTURER_ID,
             name: row.MANUFACTURER_NAME
         }));
@@ -112,50 +110,44 @@ class ProductService {
 
         return productsResponse;
     }
-
     @Get("/product/:productId")
     public productData(_: any, ctx: any) {
-
         const productId = ctx.pathParameters.productId;
 
-        const productSQL = `
-        SELECT 
-            PRODUCT_ID AS ID,
-            PRODUCT_TITLE AS TITLE,
-            PRODUCT_CATEGORY AS CATEGORY,
-            PRODUCT_MANUFACTURER AS BRAND,
-            PRODUCT_DESCRIPTION AS DESCRIPTION,
-            PRODUCT_PRICE AS PRICE
-        FROM 
-            CODBEX_PRODUCT
-        WHERE 
-            PRODUCT_ID = ?;
-`;
+        const productQuery = sql.getDialect()
+            .select()
+            .column('PRODUCT_ID')
+            .column('PRODUCT_TITLE')
+            .column('PRODUCT_CATEGORY')
+            .column('PRODUCT_MANUFACTURER')
+            .column('PRODUCT_DESCRIPTION')
+            .column('PRODUCT_PRICE')
+            .from('CODBEX_PRODUCT')
+            .where('PRODUCT_ID = ?')
+            .build();
 
-        const imagesSQL = `
-        SELECT 
-            PRODUCTIMAGE_IMAGELINK AS IMAGELINK,
-            PRODUCTIMAGE_ISFEATURE AS ISFEATURE
-        FROM 
-            CODBEX_PRODUCTIMAGE
-        WHERE 
-            PRODUCTIMAGE_PRODUCT = ?;
-                                        `;
+        const imagesQuery = sql.getDialect()
+            .select()
+            .column('PRODUCTIMAGE_IMAGELINK')
+            .column('PRODUCTIMAGE_ISFEATURE')
+            .from('CODBEX_PRODUCTIMAGE')
+            .where('PRODUCTIMAGE_PRODUCT = ?')
+            .build();
 
-        const productsResult = query.execute(productSQL, [productId]).at(0);
-        const imagesResult = query.execute(imagesSQL, [productId]);
+        const productsResult = query.execute(productQuery, [productId]).at(0);
+        const imagesResult = query.execute(imagesQuery, [productId]);
 
-        const featuredImage = imagesResult.find(img => img.ISFEATURE === true);
+        const featuredImage = imagesResult.find(img => img.PRODUCTIMAGE_ISFEATURE === true);
 
         return {
-            "id": productsResult.ID,
-            "title": productsResult.TITLE,
-            "category": productsResult.CATEGORY,
-            "brand": productsResult.BRAND,
-            "description": productsResult.DESCRIPTION,
-            "price": productsResult.PRICE,
-            "featuredImage": featuredImage.IMAGELINK,
-            "images": imagesResult.map(img => img.IMAGELINK)
+            id: productsResult.PRODUCT_ID,
+            title: productsResult.PRODUCT_TITLE,
+            category: productsResult.PRODUCT_CATEGORY,
+            brand: productsResult.PRODUCT_MANUFACTURER,
+            description: productsResult.PRODUCT_DESCRIPTION,
+            price: productsResult.PRODUCT_PRICE,
+            featuredImage: featuredImage ? featuredImage.PRODUCTIMAGE_IMAGELINK : null,
+            images: imagesResult.map(img => img.PRODUCTIMAGE_IMAGELINK)
         };
     }
 
