@@ -155,61 +155,58 @@ class ProductService {
     public productByCategory(_: any, ctx: any) {
         const categoryId = ctx.pathParameters.categoryId;
 
-        const productSQL = `
-        SELECT 
-            PRODUCT_ID AS ID,
-            PRODUCT_TITLE AS TITLE,
-            PRODUCT_PRICE AS PRICE,
-            PRODUCT_CATEGORY AS CATEGORY
-        FROM 
-            CODBEX_PRODUCT
-        WHERE 
-            PRODUCT_CATEGORY = ?;
-                                    `;
-        const products = query.execute(productSQL, [categoryId]);
+        const productQuery = sql.getDialect()
+            .select()
+            .column('PRODUCT_ID')
+            .column('PRODUCT_TITLE')
+            .column('PRODUCT_PRICE')
+            .column('PRODUCT_CATEGORY')
+            .from('CODBEX_PRODUCT')
+            .where('PRODUCT_CATEGORY = ?')
+            .build();
 
-        const productIds = products.map(p => p.ID);
+        const products = query.execute(productQuery, [categoryId]);
+
+        const productIds = products.map(p => p.PRODUCT_ID);
 
         let images = [];
         if (productIds.length > 0) {
-            const ids = productIds.map(() => '?').join(', ');
+            const ids = productIds.map(() => '?').join(',');
 
-            const imagesSQL = `
-        SELECT 
-            PRODUCTIMAGE_PRODUCT AS PRODUCTID,
-            PRODUCTIMAGE_IMAGELINK AS IMAGELINK,
-            PRODUCTIMAGE_ISFEATURE AS ISFEATURE
-        FROM 
-            CODBEX_PRODUCTIMAGE
-        WHERE 
-            PRODUCTIMAGE_PRODUCT IN (${ids});
-    `;
+            const imagesQuery = sql.getDialect()
+                .select()
+                .column('PRODUCTIMAGE_PRODUCT')
+                .column('PRODUCTIMAGE_IMAGELINK')
+                .column('PRODUCTIMAGE_ISFEATURE')
+                .from('CODBEX_PRODUCTIMAGE')
+                .where(`PRODUCTIMAGE_PRODUCT IN (${ids})`)
+                .build();
 
-            images = query.execute(imagesSQL, productIds);
+            images = query.execute(imagesQuery, productIds);
         }
 
         const imageMap = new Map();
         for (const img of images) {
-            const key = img.PRODUCTID;
+            const key = img.PRODUCTIMAGE_PRODUCT;
 
             if (!imageMap.has(key)) {
                 imageMap.set(key, { featuredImage: null, images: [] });
             }
             const entry = imageMap.get(key);
-            entry.images.push(img.IMAGELINK);
+            entry.images.push(img.PRODUCTIMAGE_IMAGELINK);
 
-            if (img.ISFEATURE === true && !entry.featuredImage) {
-                entry.featuredImage = img.IMAGELINK;
+            if (img.PRODUCTIMAGE_ISFEATURE === true && !entry.featuredImage) {
+                entry.featuredImage = img.PRODUCTIMAGE_IMAGELINK;
             }
         }
 
         const productsResponse = products.map(p => {
-            const imageData = imageMap.get(p.ID) ?? { featuredImage: null, images: [] };
+            const imageData = imageMap.get(p.PRODUCT_ID) ?? { featuredImage: null, images: [] };
             return {
-                id: p.ID,
-                title: p.TITLE,
-                price: p.PRICE,
-                category: p.CATEGORY,
+                id: p.PRODUCT_ID,
+                title: p.PRODUCT_TITLE,
+                price: p.PRODUCT_PRICE,
+                category: p.PRODUCT_CATEGORY,
                 featuredImage: imageData.featuredImage,
                 images: imageData.images
             };
