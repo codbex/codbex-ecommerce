@@ -3,29 +3,27 @@ import { query, sql } from 'sdk/db';
 
 @Controller
 class ProductService {
-
+    
     @Get("/categories")
     public categoriesData() {
+        const categoryQuery = sql.getDialect()
+            .select()
+            .column('PRODUCTCATEGORY_ID')
+            .column('PRODUCTCATEGORY_NAME')
+            .column('COUNT(PRODUCT_ID) PRCOUNT')
+            .from('CODBEX_PRODUCTCATEGORY')
+            .leftJoin('CODBEX_PRODUCT', 'PRODUCT_CATEGORY = PRODUCTCATEGORY_ID')
+            .group('PRODUCTCATEGORY_ID')
+            .group('PRODUCTCATEGORY_NAME')
+            .build();
 
-        const sql = `
-        SELECT 
-            pc.PRODUCTCATEGORY_ID AS ID,
-            pc.PRODUCTCATEGORY_NAME AS NAME,
-            COUNT(p.PRODUCT_ID) AS PRCOUNT
-        FROM 
-            CODBEX_PRODUCTCATEGORY pc
-        LEFT JOIN 
-            CODBEX_PRODUCT p 
-            ON p.PRODUCT_CATEGORY = pc.PRODUCTCATEGORY_ID
-        GROUP BY 
-            pc.PRODUCTCATEGORY_ID, 
-            pc.PRODUCTCATEGORY_NAME;
- `;
-        const result = query.execute(sql);
+        const categoryResult = query.execute(categoryQuery, []);
 
-        const categories = result.map(row => ({
-            id: row.ID,
-            title: row.NAME,
+        console.log(JSON.stringify(categoryResult));
+
+        const categories = categoryResult.map(row => ({
+            id: row.PRODUCTCATEGORY_ID,
+            title: row.PRODUCTCATEGORY_NAME,
             productCount: row.PRCOUNT
         }));
 
