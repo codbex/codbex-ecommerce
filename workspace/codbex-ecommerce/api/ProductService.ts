@@ -65,14 +65,18 @@ class ProductService {
         const productIds = products.map(p => p.PRODUCT_ID);
 
         const imageMap = fetchImagesForProducts(productIds);
+        const availabilityMap = fetchAvailabilityForProducts(productIds);
 
         const productsResponse = products.map(p => {
             const imageData = imageMap.get(p.PRODUCT_ID) ?? { featuredImage: null, images: [] };
+            const isAvailable = availabilityMap.get(p.PRODUCT_ID) ?? false;
+
             return {
                 id: String(p.PRODUCT_ID),
                 title: p.PRODUCT_TITLE,
                 price: p.PRODUCT_PRICE,
                 category: p.PRODUCT_CATEGORY,
+                availableForSale: isAvailable,
                 featuredImage: imageData.featuredImage,
                 images: imageData.images
             };
@@ -105,8 +109,16 @@ class ProductService {
             .where('PRODUCTIMAGE_PRODUCT = ?')
             .build();
 
+        const availabilityQuery = sql.getDialect()
+            .select()
+            .column('PRODUCTAVAILABILITY_QUANTITY')
+            .from('CODBEX_PRODUCTAVAILABILITY')
+            .where(`PRODUCTAVAILABILITY_PRODUCT = ?`)
+            .build();
+
         const productsResult = query.execute(productQuery, [productId]).at(0);
         const imagesResult = query.execute(imagesQuery, [productId]);
+        const availabilityResult = query.execute(availabilityQuery, [productId]).at(0);
 
         const featuredImage = imagesResult.find(img => img.PRODUCTIMAGE_ISFEATURE === true);
 
@@ -117,6 +129,7 @@ class ProductService {
             brand: productsResult.PRODUCT_MANUFACTURER,
             description: productsResult.PRODUCT_DESCRIPTION,
             price: productsResult.PRODUCT_PRICE,
+            availableForSale: availabilityResult.PRODUCTAVAILABILITY_QUANTITY > 0,
             featuredImage: featuredImage ? featuredImage.PRODUCTIMAGE_IMAGELINK : null,
             images: imagesResult.map(img => img.PRODUCTIMAGE_IMAGELINK)
         };
@@ -141,14 +154,18 @@ class ProductService {
         const productIds = products.map(p => p.PRODUCT_ID);
 
         const imageMap = fetchImagesForProducts(productIds);
+        const availabilityMap = fetchAvailabilityForProducts(productIds);
 
         const productsResponse = products.map(p => {
             const imageData = imageMap.get(p.PRODUCT_ID) ?? { featuredImage: null, images: [] };
+            const isAvailable = availabilityMap.get(p.PRODUCT_ID) ?? false;
+
             return {
                 id: String(p.PRODUCT_ID),
                 title: p.PRODUCT_TITLE,
                 price: p.PRODUCT_PRICE,
                 category: p.PRODUCT_CATEGORY,
+                availableForSale: isAvailable,
                 featuredImage: imageData.featuredImage,
                 images: imageData.images
             };
@@ -195,3 +212,23 @@ function fetchImagesForProducts(productIds) {
 
     return imageMap;
 }
+
+function fetchAvailabilityForProducts(productIds: string[]): Map<string, boolean> {
+    const availabilityRows = query.execute(
+        sql.getDialect()
+            .select()
+            .column('PRODUCTAVAILABILITY_PRODUCT')
+            .column('PRODUCTAVAILABILITY_QUANTITY')
+            .from('CODBEX_PRODUCTAVAILABILITY')
+            .where(`PRODUCTAVAILABILITY_PRODUCT IN (${productIds})`)
+            .build()
+    );
+
+    const map = new Map<string, boolean>();
+    for (const row of availabilityRows) {
+        map.set(row.PRODUCTAVAILABILITY_PRODUCT, row.PRODUCTAVAILABILITY_QUANTITY > 0);
+    }
+
+    return map;
+}
+
