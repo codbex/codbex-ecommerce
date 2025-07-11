@@ -20,7 +20,7 @@ class ProductService {
         const categoryResult = query.execute(categoryQuery, []);
 
         const categories = categoryResult.map(row => ({
-            id: row.PRODUCTCATEGORY_ID,
+            id: String(row.PRODUCTCATEGORY_ID),
             title: row.PRODUCTCATEGORY_NAME,
             productCount: row.PRCOUNT
         }));
@@ -40,7 +40,7 @@ class ProductService {
         const brandsResult = query.execute(sqlQuery, []);
 
         const allBrands = brandsResult.map(row => ({
-            id: row.MANUFACTURER_ID,
+            id: String(row.MANUFACTURER_ID),
             name: row.MANUFACTURER_NAME
         }));
 
@@ -69,7 +69,7 @@ class ProductService {
         const productsResponse = products.map(p => {
             const imageData = imageMap.get(p.PRODUCT_ID) ?? { featuredImage: null, images: [] };
             return {
-                id: p.PRODUCT_ID,
+                id: String(p.PRODUCT_ID),
                 title: p.PRODUCT_TITLE,
                 price: p.PRODUCT_PRICE,
                 category: p.PRODUCT_CATEGORY,
@@ -111,7 +111,7 @@ class ProductService {
         const featuredImage = imagesResult.find(img => img.PRODUCTIMAGE_ISFEATURE === true);
 
         return {
-            id: productsResult.PRODUCT_ID,
+            id: String(productsResult.PRODUCT_ID),
             title: productsResult.PRODUCT_TITLE,
             category: productsResult.PRODUCT_CATEGORY,
             brand: productsResult.PRODUCT_MANUFACTURER,
@@ -145,7 +145,7 @@ class ProductService {
         const productsResponse = products.map(p => {
             const imageData = imageMap.get(p.PRODUCT_ID) ?? { featuredImage: null, images: [] };
             return {
-                id: p.PRODUCT_ID,
+                id: String(p.PRODUCT_ID),
                 title: p.PRODUCT_TITLE,
                 price: p.PRODUCT_PRICE,
                 category: p.PRODUCT_CATEGORY,
