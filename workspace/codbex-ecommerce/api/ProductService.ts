@@ -60,6 +60,7 @@ class ProductService {
             .column('PRODUCT_ID')
             .column('PRODUCT_TITLE')
             .column('PRODUCT_CATEGORY')
+            .column('PRODUCT_SHORTDESCRIPTION')
             .column('PRODUCT_PRICE')
             .column('PRODUCT_CURRENCY')
             .from('CODBEX_PRODUCT')
@@ -82,6 +83,7 @@ class ProductService {
             return {
                 id: String(p.PRODUCT_ID),
                 title: p.PRODUCT_TITLE,
+                shortDescription: p.PRODUCT_SHORTDESCRIPTION,
                 price: {
                     amount: p.PRODUCT_PRICE,
                     currency: currencyCode,
@@ -106,6 +108,7 @@ class ProductService {
             .column('PRODUCT_TITLE')
             .column('PRODUCT_CATEGORY')
             .column('PRODUCT_MANUFACTURER')
+            .column('PRODUCT_SHORTDESCRIPTION')
             .column('PRODUCT_DESCRIPTION')
             .column('PRODUCT_PRICE')
             .column('PRODUCT_CURRENCY')
@@ -142,6 +145,7 @@ class ProductService {
             category: productsResult.PRODUCT_CATEGORY,
             brand: productsResult.PRODUCT_MANUFACTURER,
             description: productsResult.PRODUCT_DESCRIPTION,
+            shortDescription: productsResult.PRODUCT_SHORTDESCRIPTION,
             price: {
                 amount: productsResult.PRODUCT_PRICE,
                 currency: currencyCode,
@@ -161,6 +165,7 @@ class ProductService {
             .column('PRODUCT_ID')
             .column('PRODUCT_TITLE')
             .column('PRODUCT_PRICE')
+            .column('PRODUCT_SHORTDESCRIPTION')
             .column('PRODUCT_CURRENCY')
             .column('PRODUCT_CATEGORY')
             .from('CODBEX_PRODUCT')
@@ -183,6 +188,7 @@ class ProductService {
             return {
                 id: String(p.PRODUCT_ID),
                 title: p.PRODUCT_TITLE,
+                shortDescription: p.PRODUCT_SHORTDESCRIPTION,
                 price: {
                     amount: p.PRODUCT_PRICE,
                     currency: currencyCode,
