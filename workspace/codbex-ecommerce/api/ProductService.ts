@@ -1,6 +1,11 @@
 import { Controller, Get } from "sdk/http";
 import { query, sql } from 'sdk/db';
 
+type Money = {
+    amount: number;
+    currency: string;
+};
+
 @Controller
 class ProductService {
 
@@ -56,6 +61,7 @@ class ProductService {
             .column('PRODUCT_TITLE')
             .column('PRODUCT_CATEGORY')
             .column('PRODUCT_PRICE')
+            .column('PRODUCT_CURRENCY')
             .from('CODBEX_PRODUCT')
             .limit(30)
             .build();
@@ -66,15 +72,20 @@ class ProductService {
 
         const imageMap = fetchImagesForProducts(productIds);
         const availabilityMap = fetchAvailabilityForProducts(productIds);
+        const currencyMap = mapProductIdToCurrencyCode(products);
 
         const productsResponse = products.map(p => {
             const imageData = imageMap.get(p.PRODUCT_ID) ?? { featuredImage: null, images: [] };
             const isAvailable = availabilityMap.get(p.PRODUCT_ID) ?? false;
+            const currencyCode = currencyMap.get(p.PRODUCT_ID) ?? 'UNKNOWN';
 
             return {
                 id: String(p.PRODUCT_ID),
                 title: p.PRODUCT_TITLE,
-                price: p.PRODUCT_PRICE,
+                price: {
+                    amount: p.PRODUCT_PRICE,
+                    currency: currencyCode,
+                } as Money,
                 category: p.PRODUCT_CATEGORY,
                 availableForSale: isAvailable,
                 featuredImage: imageData.featuredImage,
@@ -97,6 +108,7 @@ class ProductService {
             .column('PRODUCT_MANUFACTURER')
             .column('PRODUCT_DESCRIPTION')
             .column('PRODUCT_PRICE')
+            .column('PRODUCT_CURRENCY')
             .from('CODBEX_PRODUCT')
             .where('PRODUCT_ID = ?')
             .build();
@@ -122,13 +134,18 @@ class ProductService {
 
         const featuredImage = imagesResult.find(img => img.PRODUCTIMAGE_ISFEATURE === true);
 
+        const currencyCode = getCurrencyCodeForSingleProduct(productsResult.PRODUCT_CURRENCY);
+
         return {
             id: String(productsResult.PRODUCT_ID),
             title: productsResult.PRODUCT_TITLE,
             category: productsResult.PRODUCT_CATEGORY,
             brand: productsResult.PRODUCT_MANUFACTURER,
             description: productsResult.PRODUCT_DESCRIPTION,
-            price: productsResult.PRODUCT_PRICE,
+            price: {
+                amount: productsResult.PRODUCT_PRICE,
+                currency: currencyCode,
+            } as Money,
             availableForSale: availabilityResult.PRODUCTAVAILABILITY_QUANTITY > 0,
             featuredImage: featuredImage ? featuredImage.PRODUCTIMAGE_IMAGELINK : null,
             images: imagesResult.map(img => img.PRODUCTIMAGE_IMAGELINK)
@@ -144,6 +161,7 @@ class ProductService {
             .column('PRODUCT_ID')
             .column('PRODUCT_TITLE')
             .column('PRODUCT_PRICE')
+            .column('PRODUCT_CURRENCY')
             .column('PRODUCT_CATEGORY')
             .from('CODBEX_PRODUCT')
             .where('PRODUCT_CATEGORY = ?')
@@ -155,15 +173,20 @@ class ProductService {
 
         const imageMap = fetchImagesForProducts(productIds);
         const availabilityMap = fetchAvailabilityForProducts(productIds);
+        const currencyMap = mapProductIdToCurrencyCode(products);
 
         const productsResponse = products.map(p => {
             const imageData = imageMap.get(p.PRODUCT_ID) ?? { featuredImage: null, images: [] };
             const isAvailable = availabilityMap.get(p.PRODUCT_ID) ?? false;
+            const currencyCode = currencyMap.get(p.PRODUCT_ID) ?? 'UNKNOWN';
 
             return {
                 id: String(p.PRODUCT_ID),
                 title: p.PRODUCT_TITLE,
-                price: p.PRODUCT_PRICE,
+                price: {
+                    amount: p.PRODUCT_PRICE,
+                    currency: currencyCode,
+                } as Money,
                 category: p.PRODUCT_CATEGORY,
                 availableForSale: isAvailable,
                 featuredImage: imageData.featuredImage,
@@ -231,4 +254,40 @@ function fetchAvailabilityForProducts(productIds: string[]): Map<string, boolean
 
     return map;
 }
+
+function mapProductIdToCurrencyCode(products): Map<number, string> {
+
+    const currencyIds = products.map(p => p.PRODUCT_CURRENCY);
+
+    const currencyQuery = sql.getDialect()
+        .select()
+        .column('CURRENCY_ID')
+        .column('CURRENCY_CODE')
+        .from('CODBEX_CURRENCY')
+        .where(`CURRENCY_ID IN (${currencyIds.map(() => '?').join(',')})`)
+        .build();
+
+    const currencies = query.execute(currencyQuery, currencyIds);
+
+    const currencyMap = new Map(currencies.map(c => [c.CURRENCY_ID, c.CURRENCY_CODE]));
+
+    return new Map(
+        products.map(p => [p.PRODUCT_ID, currencyMap.get(p.PRODUCT_CURRENCY)])
+    );
+}
+
+function getCurrencyCodeForSingleProduct(currencyId) {
+
+    const currencyQuery = sql.getDialect()
+        .select()
+        .column('CURRENCY_CODE')
+        .from('CODBEX_CURRENCY')
+        .where('CURRENCY_ID = ?')
+        .build();
+
+    const result = query.execute(currencyQuery, [currencyId]);
+    return result.length > 0 ? result[0].CURRENCY_CODE : null;
+}
+
+
 
