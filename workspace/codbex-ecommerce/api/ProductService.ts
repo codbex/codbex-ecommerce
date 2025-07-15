@@ -116,6 +116,17 @@ class ProductService {
             .where('PRODUCT_ID = ?')
             .build();
 
+        const attributeQuery = sql.getDialect()
+            .select()
+            .column('PRODUCTATTRIBUTE_NAME')
+            .column('PRODUCTATTRIBUTE_VALUE')
+            .column('PRODUCTATTRIBUTEGROUP_NAME')
+            .from('CODBEX_PRODUCTATTRIBUTE pa')
+            .leftJoin('CODBEX_PRODUCTATTRIBUTEGROUP', 'PRODUCTATTRIBUTE_GROUP = PRODUCTATTRIBUTEGROUP_ID')
+            .where('PRODUCTATTRIBUTE_PRODUCT = ?')
+            .build();
+
+
         const imagesQuery = sql.getDialect()
             .select()
             .column('PRODUCTIMAGE_IMAGELINK')
@@ -134,10 +145,25 @@ class ProductService {
         const productsResult = query.execute(productQuery, [productId]).at(0);
         const imagesResult = query.execute(imagesQuery, [productId]);
         const availabilityResult = query.execute(availabilityQuery, [productId]).at(0);
+        const attributeResult = query.execute(attributeQuery, [productId]);
 
         const featuredImage = imagesResult.find(img => img.PRODUCTIMAGE_ISFEATURE === true);
 
         const currencyCode = getCurrencyCodeForSingleProduct(productsResult.PRODUCT_CURRENCY);
+
+        const groupedAttributes: Record<string, { name: string; value: string }[]> = {};
+        for (const attr of attributeResult) {
+            const groupName = attr.PRODUCTATTRIBUTEGROUP_NAME || "Ungrouped";
+
+            if (!groupedAttributes[groupName]) {
+                groupedAttributes[groupName] = [];
+            }
+
+            groupedAttributes[groupName].push({
+                name: attr.PRODUCTATTRIBUTE_NAME,
+                value: attr.PRODUCTATTRIBUTE_VALUE
+            });
+        }
 
         return {
             id: String(productsResult.PRODUCT_ID),
@@ -152,7 +178,8 @@ class ProductService {
             } as Money,
             availableForSale: availabilityResult.PRODUCTAVAILABILITY_QUANTITY > 0,
             featuredImage: featuredImage ? featuredImage.PRODUCTIMAGE_IMAGELINK : null,
-            images: imagesResult.map(img => img.PRODUCTIMAGE_IMAGELINK)
+            images: imagesResult.map(img => img.PRODUCTIMAGE_IMAGELINK),
+            attributes: groupedAttributes
         };
     }
 
