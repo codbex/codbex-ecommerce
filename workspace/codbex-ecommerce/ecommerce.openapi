@@ -1,0 +1,271 @@
+openapi: 3.0.4
+info:
+  title: codbex-ecommerce - OpenAPI 3.0
+  description: OpenAPI for codbex-ecommerce
+  version: 1.0.0
+servers:
+  - url: /services/ts/codbex-ecommerce/api/ProductService.ts
+tags:
+  - name: Product
+    description: Product
+  - name: Category
+    description: Product category
+  - name: Brand
+    description: Product Manufacturer
+paths:
+  /productsByCategory/{categoryId}:
+    get:
+      tags:
+        - Product
+      summary: List products by category
+      description: Returns products filtered by a given category ID, including pricing, availability, and images.
+      parameters:
+        - in: path
+          name: categoryId
+          required: true
+          description: The ID of the category to filter products by
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response with filtered products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductSummary'
+        '400':
+           description: Invalid category ID format
+           content:
+             application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /products:
+    get:
+      tags:
+        - Product
+      summary: List products
+      description: Returns a list of up to 30 products, with pricing, availability, and images.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ProductSummary'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /product/{productId}:
+    get:
+      tags:
+        - Product
+      summary: Get product by ID
+      description: Returns detailed product data for a given product ID.
+      parameters:
+        - in: path
+          name: productId
+          required: true
+          description: The ID of the product to fetch
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductDetail'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /brands:
+    get:
+      tags:
+        - Brand
+      summary: List all brands
+      description: Returns a list of all product manufacturers (brands).
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Brand'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /categories:
+    get:
+      tags:
+        - Category
+      summary: List all product categories
+      description: Returns a list of product categories, including the count of products in each.
+      responses:
+        '200':
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "1"
+        title:
+          type: string
+          example: "Skincare"
+        productCount:
+          type: integer
+          example: 25
+    Brand:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "123"
+        name:
+          type: string
+          example: "Bioderma"
+    ProductSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "101"
+        title:
+          type: string
+          example: "Vitamin C Serum"
+        shortDescription:
+          type: string
+          example: "Brightening serum for glowing skin"
+        price:
+          $ref: '#/components/schemas/Money'
+        category:
+          type: string
+          example: "Skincare"
+        availableForSale:
+          type: boolean
+          example: true
+        featuredImage:
+          type: string
+          nullable: true
+          example: "https://cdn.example.com/images/vitamin-c.jpg"
+        images:
+          type: array
+          items:
+            type: string
+            example: "https://cdn.example.com/images/vitamin-c-2.jpg"
+    ProductDetail:
+      allOf:
+        - $ref: '#/components/schemas/ProductSummary'
+        - type: object
+          properties:
+            brand:
+              type: string
+              example: "The Ordinary"
+            description:
+              type: string
+              example: "A high-potency vitamin C serum with 20% concentration."
+            attributes:
+              type: object
+              additionalProperties:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      example: "Volume"
+                    value:
+                      type: string
+                      example: "30ml"
+    Money:
+      type: object
+      properties:
+        amount:
+          type: number
+          format: float
+          example: 12.99
+        currency:
+          type: string
+          example: "USD"
+    Error:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Error message
+        code:
+          type: integer
+          example: The error code 
+
