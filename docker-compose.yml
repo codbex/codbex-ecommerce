@@ -11,7 +11,7 @@ services:
       - ./postgresql-data:/var/lib/postgresql/data
 
   application:
-    image: ghcr.io/codbex/codbex-atlas:2.68.0
+    image: ghcr.io/codbex/codbex-atlas:2.69.0
     ports:
       - "8080:80"
     environment:
