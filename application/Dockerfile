@@ -1,5 +1,5 @@
 # FROM ghcr.io/codbex/codbex-gaia:2.46.0
-FROM ghcr.io/codbex/codbex-atlas:2.63.0
+FROM ghcr.io/codbex/codbex-atlas:2.68.0
 
 COPY node_modules/@codbex target/dirigible/repository/root/registry/public/
 
