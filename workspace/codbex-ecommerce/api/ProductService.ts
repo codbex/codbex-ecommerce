@@ -52,6 +52,25 @@ class ProductService {
         return allBrands;
     }
 
+    @Get("/countries")
+    public countriesData() {
+        const sqlQuery = sql.getDialect()
+            .select()
+            .column('COUNTRY_NAME')
+            .column('COUNTRY_CODE3')
+            .from('CODBEX_COUNTRY')
+            .build();
+
+        const countryResult = query.execute(sqlQuery, []);
+
+        const allCountries = countryResult.map(row => ({
+            name: row.COUNTRY_NAME,
+            code: row.COUNTRY_CODE3
+        }));
+
+        return allCountries;
+    }
+
     @Get("/products")
     public allProducts() {
 
