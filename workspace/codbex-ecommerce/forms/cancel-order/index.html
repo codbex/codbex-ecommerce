@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml" ng-app="templateApp" ng-controller="templateController">
+
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="icon" sizes="any" href="data:;base64,iVBORw0KGgo=">
+        <title dg-view-title></title>
+        <script type="text/javascript" src="config.js"></script>
+        <script type="text/javascript" src="/services/js/platform-core/services/loader.js?id=view-js"></script>
+        <link type="text/css" rel="stylesheet" href="/services/js/platform-core/services/loader.js?id=view-css" />
+        <script src="controller.js"></script>
+    </head>
+
+    <body class="bk-vbox">
+
+        <div class="fd-padding bk-pointer">
+            <h2 bk-title wrap="true" header-size="2" aria-label="title" align="center">Cancel order</h2>
+        </div>
+
+        <bk-scrollbar class="bk-full-height bk-padding--sm">
+
+            <bk-fieldset class="fd-margin-bottom--md">
+                <bk-form-group>
+                    <bk-form-item>
+                        <bk-form-label required for="shippingProvider">Reason:</bk-form-label>
+                        <bk-input-group>
+                            <bk-input id="shippingProvider" type="text" placeholder="Enter Reason"></bk-input>
+                        </bk-input-group>
+                    </bk-form-item>
+                </bk-form-group>
+            </bk-fieldset>
+
+
+            <div class="fd-padding bk-pointer">
+                <h4 bk-title wrap="true" header-size="4" aria-label="widget title">Order Summary:</h4>
+            </div>
+
+            <table bk-table>
+                <thead bk-table-header interactive="false">
+                    <tr bk-table-row>
+                        <th bk-table-header-cell><strong>Order #:</strong> {{Order.Number}}</th>
+                        <th bk-table-header-cell> <strong>Customer:</strong> {{Customer.Name}}</th>
+                        <th bk-table-header-cell> <strong>Status:</strong> {{Order.Status}}</th>
+                        <th bk-table-header-cell><strong>Total:</strong> ${{Order.Total | number:2}}</th>
+
+                    </tr>
+                </thead>
+            </table>
+
+            <bk-bar class="bk-margin-top--md bk-padding--sm">
+                <bk-bar-right>
+                    <bk-button label="Cancel" state="negative" ng-click="cancelOrder()"></bk-button>
+                </bk-bar-right>
+            </bk-bar>
+
+        </bk-scrollbar>
+        <theme></theme>
+    </body>
+
+</html>

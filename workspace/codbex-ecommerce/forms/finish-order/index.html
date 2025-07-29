@@ -18,36 +18,29 @@
             <h2 bk-title wrap="true" header-size="2" aria-label="title" align="center">Finish order</h2>
         </div>
 
-        <bk-scrollbar class="bk-full-height bk-padding--sm bk-center--horizontal">
-            <bk-panel expanded="true" compact="true" class="bk-restrict-width--md bk-full-width">
-                <bk-panel-content aria-label="Panel Content">
+        <bk-scrollbar class="bk-full-height bk-padding--sm">
 
-                    <div class="fd-padding bk-pointer">
-                        <h4 bk-title wrap="true" header-size="4" aria-label="widget title">Order Summary:</h4>
-                    </div>
+            <div class="fd-padding bk-pointer">
+                <h4 bk-title wrap="true" header-size="4" aria-label="widget title">Order Summary:</h4>
+            </div>
 
-                    <table bk-table>
-                        <thead bk-table-header interactive="false">
-                            <tr bk-table-row>
-                                <th bk-table-header-cell><strong>Order #:</strong> {{Order.Number}}</th>
-                                <th bk-table-header-cell> <strong>Customer:</strong> {{Customer.Name}}</th>
-                                <th bk-table-header-cell> <strong>Status:</strong> {{Order.Status}}</th>
-                                <th bk-table-header-cell><strong>Total:</strong> {{Order.Total | number:2}}</th>
+            <table bk-table>
+                <thead bk-table-header interactive="false">
+                    <tr bk-table-row>
+                        <th bk-table-header-cell><strong>Order #:</strong> {{Order.Number}}</th>
+                        <th bk-table-header-cell> <strong>Customer:</strong> {{Customer.Name}}</th>
+                        <th bk-table-header-cell> <strong>Status:</strong> {{Order.Status}}</th>
+                        <th bk-table-header-cell><strong>Total:</strong> {{Order.Total | number:2}}</th>
 
-                            </tr>
-                        </thead>
-                    </table>
+                    </tr>
+                </thead>
+            </table>
 
-                    <bk-bar class="bk-margin-top--md bk-padding--sm">
-                        <bk-bar-right>
-                            <bk-button label="Finish" state="positive" ng-click="finishOrder()"></bk-button>
-                        </bk-bar-right>
-                    </bk-bar>
-
-                </bk-panel-content>
-
-            </bk-panel>
-
+            <bk-bar class="bk-margin-top--md bk-padding--sm">
+                <bk-bar-right>
+                    <bk-button label="Finish" state="positive" ng-click="finishOrder()"></bk-button>
+                </bk-bar-right>
+            </bk-bar>
         </bk-scrollbar>
         <theme></theme>
     </body>
