@@ -22,11 +22,10 @@
 
             <bk-fieldset class="fd-margin-bottom--md">
                 <bk-form-group>
-                    <bk-form-item>
-                        <bk-form-label required for="shippingProvider">Shipping provider:</bk-form-label>
-                        <bk-input-group>
-                            <bk-input id="shippingProvider" type="text" placeholder="Enter Shipping Provider"></bk-input>
-                        </bk-input-group>
+                    <bk-form-item horizontal="false">
+                        <bk-form-label for="shippingProvider-{{ $index }}" ng-required="true" colon="true">ShippingProvider</bk-form-label>
+                        <bk-combobox-input input-id="shippingProvider-{{ $index }}" ng-required="true" ng-model="entity.shippingProvider" dropdown-items="shippingProviderOptions" placeholder="Choose Shipping Provider ..."
+                            btn-aria-label="show/hide Shipping Providers" list-aria-label="Assignee options"></bk-combobox-input>
                     </bk-form-item>
                     <bk-form-item>
                         <bk-form-label required for="trackingNumber">Tracking number:</bk-form-label>
