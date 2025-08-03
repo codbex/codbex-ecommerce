@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@codbex/codbex-inventory": "^0.11.0",
-    "@codbex/codbex-orders": "^0.7.0",
+    "@codbex/codbex-orders": "^0.7.0"
   },
   "scripts": {
     "build": "tsc"
