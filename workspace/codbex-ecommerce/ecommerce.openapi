@@ -13,6 +13,39 @@ tags:
   - name: Brand
     description: Product Manufacturer
 paths:
+  /account/orders:
+    get:
+      tags:
+        - SalesOrder
+      summary: List logged customer Sales Orders
+      description: Returns sales orders filtered by customer
+      responses:
+        '200':
+          description: Successful response with filtered sales orders
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SalesOrder'
+        '400':
+           description: Invalid customer
+           content:
+             application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+        '404':
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /productsByCategory/{categoryId}:
     get:
       tags:
@@ -291,6 +324,21 @@ components:
                     value:
                       type: string
                       example: "30ml"
+    SalesOrder:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "101"
+        creationDate:
+          type: string
+          format: date-time
+          example: "2025-08-11T14:30:00Z"
+        status:
+          type: string
+          example: "Pending"
+        totalAmount:
+          $ref: '#/components/schemas/Money'
     Money:
       type: object
       properties:
