@@ -1,6 +1,6 @@
 {
   "name": "@codbex/codbex-ecommerce",
-  "version": "1.0.39",
+  "version": "1.0.40",
   "repository": {
     "url": "https://github.com/codbex/codbex-ecommerce.git",
     "type": "git"
@@ -12,7 +12,7 @@
     "@codbex/codbex-inventory": "^0.12.0",
     "@codbex/codbex-orders": "^0.8.0",
     "@codbex/codbex-orders-processes": "^0.1.0",
-     "@codbex/codbex-invoices": "^0.9.0"
+    "@codbex/codbex-invoices": "^0.9.0"
   },
   "scripts": {
     "build": "tsc"
