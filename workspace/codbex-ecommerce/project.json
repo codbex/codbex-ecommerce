@@ -6,6 +6,24 @@
             "type": "git",
             "url": "https://github.com/codbex/codbex-inventory.git",
             "branch": "main"
+        },
+        {
+            "guid": "codbex-orders",
+            "type": "git",
+            "url": "https://github.com/codbex/codbex-orders.git",
+            "branch": "main"
+        },
+         {
+            "guid": "codbex-invoices",
+            "type": "git",
+            "url": "https://github.com/codbex/codbex-invoices.git",
+            "branch": "main"
+        },
+        {
+            "guid": "codbex-orders-processes",
+            "type": "git",
+            "url": "https://github.com/codbex/codbex-orders-processes.git",
+            "branch": "main"
         }
     ],
     "actions": [
