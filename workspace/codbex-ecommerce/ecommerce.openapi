@@ -13,8 +13,74 @@ tags:
   - name: Brand
     description: Product Manufacturer
 paths:
-  /account/orders:
+    /account/addresses:
     get:
+      tags:
+        - AccountAddresses
+      summary: List logged customer account addresses
+      description: Returns account addresses
+      responses:
+        '200':
+          description: Successful response with account addresses
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountAddresses'
+        '400':
+           description: Invalid account
+           content:
+             application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    /account/details:
+      get:
+      tags:
+        - AccountDetails
+      summary: List logged customer account details
+      description: Returns account details
+      responses:
+        '200':
+          description: Successful response with account details
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountDetails'
+        '400':
+           description: Invalid account
+           content:
+             application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+        '404':
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    /account/orders:
+      get:
       tags:
         - SalesOrder
       summary: List logged customer Sales Orders
@@ -46,8 +112,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /productsByCategory/{categoryId}:
-    get:
+    /productsByCategory/{categoryId}:
+      get:
       tags:
         - Product
       summary: List products by category
@@ -86,8 +152,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /products:
-    get:
+    /products:
+      get:
       tags:
         - Product
       summary: List products
@@ -108,8 +174,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 
-  /product/{productId}:
-    get:
+    /product/{productId}:
+      get:
       tags:
         - Product
       summary: Get product by ID
@@ -140,8 +206,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /brands:
-    get:
+    /brands:
+      get:
       tags:
         - Brand
       summary: List all brands
@@ -173,8 +239,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /countries:
-    get:
+    /countries:
+      get:
       tags:
         - Country
       summary: List all countries
@@ -206,8 +272,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /categories:
-    get:
+    /categories:
+      get:
       tags:
         - Category
       summary: List all product categories
@@ -324,6 +390,128 @@ components:
                     value:
                       type: string
                       example: "30ml"
+    AccountDetails:
+      type: object
+      properties:
+        firstName:
+          type: string
+          example: "John"
+          description: "Customer's first name"
+        lastName:
+          type: string
+          example: "Doe"
+          description: "Customer's last name"
+        phoneNumber:
+          type: string
+          example: "+1234567890"
+          description: "Customer's phone number"
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+          description: "Customer's email address"
+        creationDate:
+          type: string
+          format: date-time
+          example: "2025-08-11T12:34:56Z"
+          description: "Account creation date in ISO 8601 format"
+      ShippingAddress:
+       type: object
+       properties:
+        id:
+          type: string
+          example: "1"
+          description: "Unique identifier for the customer address"
+        firstName:
+          type: string
+          example: "John"
+          description: "Customer's first name"
+        lastName:
+          type: string
+          example: "Doe"
+          description: "Customer's last name"
+        country:
+          type: string
+          example: "USA"
+          description: "Country name"
+        addressLine1:
+          type: string
+          example: "123 Main St"
+          description: "Primary address line"
+        addressLine2:
+          type: string
+          example: "Apt 4B"
+          description: "Secondary address line"
+        city:
+          type: string
+          example: "New York"
+          description: "City"
+        postalCode:
+          type: string
+          example: "10001"
+          description: "Postal or ZIP code"
+        phoneNumber:
+          type: string
+          example: "+1234567890"
+          description: "Phone number associated with the address"
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+          description: "Email associated with the address"
+      BillingAddress:
+       type: object
+       properties:
+        id:
+          type: string
+          example: "1"
+          description: "Unique identifier for the customer address"
+        firstName:
+          type: string
+          example: "John"
+          description: "Customer's first name"
+        lastName:
+          type: string
+          example: "Doe"
+          description: "Customer's last name"
+        country:
+          type: string
+          example: "USA"
+          description: "Country name"
+        addressLine1:
+          type: string
+          example: "123 Main St"
+          description: "Primary address line"
+        addressLine2:
+          type: string
+          example: "Apt 4B"
+          description: "Secondary address line"
+        city:
+          type: string
+          example: "New York"
+          description: "City"
+        postalCode:
+          type: string
+          example: "10001"
+          description: "Postal or ZIP code"
+        phoneNumber:
+          type: string
+          example: "+1234567890"
+          description: "Phone number associated with the address"
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+          description: "Email associated with the address"
+    AccountAddresses:
+      type: object
+      properties:
+        shippingAddress:
+          $ref: '#/components/schemas/ShippingAddress'
+          description: "Shipping address details"
+        billingAddress:
+          $ref: '#/components/schemas/BillingAddress'
+          description: "Billing address details"
     SalesOrder:
       type: object
       properties:
