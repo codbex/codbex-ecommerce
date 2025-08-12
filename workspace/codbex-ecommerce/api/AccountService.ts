@@ -1,6 +1,8 @@
 import { Controller, Get } from "sdk/http";
 import { query, sql } from 'sdk/db';
 
+import { user } from 'sdk/security';
+
 type Money = {
     amount: number;
     currency: string;
@@ -11,6 +13,10 @@ class AccountService {
 
     @Get("/account/addresses")
     public addressesData() {
+
+        const userIdentifier = user.getName();
+
+        console.log(userIdentifier);
 
         const addressQuery = sql.getDialect()
             .select()
@@ -94,6 +100,7 @@ class AccountService {
             .column('CUSTOMER_LASTNAME')
             .column('CUSTOMER_EMAIL')
             .column('CUSTOMER_PHONE')
+            .column('CUSTOMER_CREATEDAT')
             .from('CODBEX_CUSTOMER')
             .where('CUSTOMER_ID = 1')
             .build();
@@ -105,8 +112,7 @@ class AccountService {
             lastName: customerResult[0].CUSTOMER_LASTNAME,
             phoneNumber: customerResult[0].CUSTOMER_PHONE,
             email: customerResult[0].CUSTOMER_EMAIL,
-            creationDate: new Date().toISOString()
-            //here we need account creation date
+            creationDate: customerResult[0].CUSTOMER_CREATEDAT
         };
     }
 
