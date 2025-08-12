@@ -14,20 +14,13 @@ class AccountService {
     @Get("/account/addresses")
     public addressesData() {
 
-        const userIdentifier = user.getName();
-
-        console.log("user get name");
-        console.log(userIdentifier);
-        
-        console.log("sec token");
-        console.log(user.getSecurityToken());
+        const customer = mapCustomer(user.getName());
 
         const addressQuery = sql.getDialect()
             .select()
             .column('CUSTOMERADDRESS_ID')
             .column('CUSTOMERADDRESS_ADRESSLINE1')
             .column('CUSTOMERADDRESS_ADDRESSLINE2')
-            // .column('CUSTOMERADDRESS_COMPANY')
             .column('CUSTOMERADDRESS_COUNTRY')
             .column('CUSTOMERADDRESS_CITY')
             .column('CUSTOMERADDRESS_POSTALCODE')
@@ -35,7 +28,7 @@ class AccountService {
             .column('CUSTOMERADDRESS_CUSTOMERADDRESSTYPE')
             .from('CODBEX_CUSTOMERADDRESS')
             .where('CUSTOMERADDRESS_CUSTOMERADDRESSTYPE = ?')
-            .where('CUSTOMERADDRESS_CUSTOMER = 1')
+            .where('CUSTOMERADDRESS_CUSTOMER = ?')
             .build();
 
         const customerQuery = sql.getDialect()
@@ -45,13 +38,12 @@ class AccountService {
             .column('CUSTOMER_EMAIL')
             .column('CUSTOMER_PHONE')
             .from('CODBEX_CUSTOMER')
-            .where('CUSTOMER_ID = 1')
+            .where('CUSTOMER_ID = ?')
             .build();
 
-        const customerResult = query.execute(customerQuery);
+        const customerResult = query.execute(customerQuery, [customer]);
 
-        const billingAddress = query.execute(addressQuery, [2]).map(row => {
-            console.log('ee');
+        const billingAddress = query.execute(addressQuery, [2, customer]).map(row => {
 
             const country = mapCountry(row.CUSTOMERADDRESS_COUNTRY);
             const city = mapCity(row.CUSTOMERADDRESS_CITY);
@@ -60,7 +52,6 @@ class AccountService {
                 id: row.CUSTOMERADDRESS_ID,
                 firstName: customerResult[0].CUSTOMER_FIRSTNAME,
                 lastName: customerResult[0].CUSTOMER_LASTNAME,
-                // companyName: string;
                 country: country,
                 addressLine1: row.CUSTOMERADDRESS_ADRESSLINE1,
                 addressLine2: row.CUSTOMERADDRESS_ADDRESSLINE2,
@@ -71,7 +62,7 @@ class AccountService {
             };
         });
 
-        const shippingAddress = query.execute(addressQuery, [1]).map(row => {
+        const shippingAddress = query.execute(addressQuery, [1, customer]).map(row => {
             const country = mapCountry(row.CUSTOMERADDRESS_COUNTRY);
             const city = mapCity(row.CUSTOMERADDRESS_CITY);
 
@@ -79,7 +70,6 @@ class AccountService {
                 id: row.CUSTOMERADDRESS_ID,
                 firstName: customerResult[0].CUSTOMER_FIRSTNAME,
                 lastName: customerResult[0].CUSTOMER_LASTNAME,
-                // companyName: string;
                 country: country,
                 addressLine1: row.CUSTOMERADDRESS_ADRESSLINE1,
                 addressLine2: row.CUSTOMERADDRESS_ADDRESSLINE2,
@@ -98,6 +88,9 @@ class AccountService {
 
     @Get("/account/details")
     public accountData() {
+
+        const customer = mapCustomer(user.getName());
+
         const customerQuery = sql.getDialect()
             .select()
             .column('CUSTOMER_FIRSTNAME')
@@ -106,10 +99,10 @@ class AccountService {
             .column('CUSTOMER_PHONE')
             .column('CUSTOMER_CREATEDAT')
             .from('CODBEX_CUSTOMER')
-            .where('CUSTOMER_ID = 1')
+            .where('CUSTOMER_ID = ?')
             .build();
 
-        const customerResult = query.execute(customerQuery);
+        const customerResult = query.execute(customerQuery, [customer]);
 
         return {
             firstName: customerResult[0].CUSTOMER_FIRSTNAME,
@@ -123,6 +116,8 @@ class AccountService {
     @Get("/account/orders")
     public ordersData() {
 
+        const customer = mapCustomer(user.getName());
+
         const salesOrderQuery = sql.getDialect()
             .select()
             .column('SALESORDER_ID')
@@ -131,10 +126,10 @@ class AccountService {
             .column('SALESORDER_CURRENCY')
             .column('SALESORDER_TOTAL')
             .from('CODBEX_SALESORDER')
-            .where('SALESORDER_CUSTOMER = 1')
+            .where('SALESORDER_CUSTOMER = ?')
             .build();
 
-        const salesOrderResults = query.execute(salesOrderQuery, []);
+        const salesOrderResults = query.execute(salesOrderQuery, [customer]);
 
         const salesOrders = salesOrderResults.map(row => {
             const currencyCode = mapCurrencyCode(row.SALESORDER_CURRENCY);
@@ -153,6 +148,19 @@ class AccountService {
 
         return salesOrders;
     }
+}
+
+function mapCustomer(identifier: string) {
+    const customerQuery = sql.getDialect()
+        .select()
+        .column('CUSTOMER_ID')
+        .from('CODBEX_CUSTOMER')
+        .where(`CUSTOMER_IDENTIFIER = ?`)
+        .build();
+
+    const customerResult = query.execute(customerQuery, [identifier]);
+
+    return customerResult[0].CUSTOMER_ID;
 }
 
 function mapStatus(statusId: number) {
