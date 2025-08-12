@@ -18,11 +18,9 @@ class AccountService {
 
         console.log("user get name");
         console.log(userIdentifier);
-
-        const userRole = user.getName();
         
-        console.log("user get role");
-        console.log(userRole);
+        console.log("sec token");
+        console.log(user.getSecurityToken());
 
         const addressQuery = sql.getDialect()
             .select()
