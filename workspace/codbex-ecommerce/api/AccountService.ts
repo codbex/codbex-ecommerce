@@ -16,7 +16,13 @@ class AccountService {
 
         const userIdentifier = user.getName();
 
+        console.log("user get name");
         console.log(userIdentifier);
+
+        const userRole = user.getName();
+        
+        console.log("user get role");
+        console.log(userRole);
 
         const addressQuery = sql.getDialect()
             .select()
