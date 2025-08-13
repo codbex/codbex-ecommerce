@@ -48,3 +48,7 @@ export function cityToId(cityName: string) {
 export function mapCity(cityId: number) {
     return getColumnByWhere<string>('CODBEX_CITY', 'CITY_NAME', 'CITY_ID = ?', [cityId]);
 }
+
+export function mapAddress(addressName: string) {
+    return getColumnByWhere<number>('CODBEX_CUSTOMERADDRESSTYPE', 'CUSTOMERADDRESSTYPE_ID', 'CUSTOMERADDRESSTYPE_NAME = ?', [addressName]);
+}

@@ -43,6 +43,19 @@ export interface UpdateAddress {
     postalCode: string;
 }
 
+export interface AddAddress {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    country: string;
+    city: string;
+    addressLine1: string;
+    addressLine2?: string;
+    postalCode: string;
+    addressType: string;
+}
+
 export interface AddressesResponse {
     shippingAddress: Address[];
     billingAddress: Address[];
