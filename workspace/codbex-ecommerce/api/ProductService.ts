@@ -1,10 +1,6 @@
 import { Controller, Get } from "sdk/http";
 import { query, sql } from 'sdk/db';
-
-type Money = {
-    amount: number;
-    currency: string;
-};
+import { Money } from './types/Types';
 
 @Controller
 class ProductService {
@@ -251,7 +247,7 @@ class ProductService {
 
 }
 
-function fetchImagesForProducts(productIds) {
+function fetchImagesForProducts(productIds: number[]) {
     if (productIds.length === 0) {
         return new Map();
     }
@@ -307,7 +303,7 @@ function fetchAvailabilityForProducts(productIds: string[]): Map<string, boolean
     return map;
 }
 
-function mapProductIdToCurrencyCode(products): Map<number, string> {
+function mapProductIdToCurrencyCode(products: any): Map<number, string> {
 
     const currencyIds = products.map(p => p.PRODUCT_CURRENCY);
 
@@ -328,7 +324,7 @@ function mapProductIdToCurrencyCode(products): Map<number, string> {
     );
 }
 
-function getCurrencyCodeForSingleProduct(currencyId) {
+function getCurrencyCodeForSingleProduct(currencyId: number) {
 
     const currencyQuery = sql.getDialect()
         .select()
