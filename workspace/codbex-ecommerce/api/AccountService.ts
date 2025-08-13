@@ -139,10 +139,9 @@ class AccountService {
         return salesOrders;
     }
 
-    @Post("/account/address/")
+    @Post("/account/address")
     public addAddress(body: types.AddAddress) {
-        // const loggedCustomer = utils.mapCustomer(user.getName());
-        const loggedCustomer = 10;
+        const loggedCustomer = utils.mapCustomer(user.getName());
         const addressType = utils.mapAddress(body.addressType);
 
         const addressToAdd = {
@@ -163,7 +162,7 @@ class AccountService {
             const addressId = this.customerAddressDao.create(addressToAdd);
 
             const updatedAddress = this.customerAddressDao.findById(addressId);
-
+            response.setStatus(response.CREATED);
             return { success: true, address: updatedAddress };
         } catch (error) {
             console.error("Failed to update address:", error);
