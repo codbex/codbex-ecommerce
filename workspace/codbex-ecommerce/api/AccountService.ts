@@ -139,6 +139,38 @@ class AccountService {
         return salesOrders;
     }
 
+    @Post("/account/address/")
+    public addAddress(body: types.AddAddress) {
+        // const loggedCustomer = utils.mapCustomer(user.getName());
+        const loggedCustomer = 10;
+        const addressType = utils.mapAddress(body.addressType);
+
+        const addressToAdd = {
+            Customer: loggedCustomer,
+            FirstName: body.firstName,
+            LastName: body.lastName,
+            Email: body.email,
+            Phone: body.phoneNumber,
+            Country: utils.countryToId(body.country),
+            City: utils.cityToId(body.city),
+            AddressLine1: body.addressLine1,
+            AddressLine2: body.addressLine2 || '',
+            PostalCode: body.postalCode,
+            AddressType: addressType
+        };
+
+        try {
+            const addressId = this.customerAddressDao.create(addressToAdd);
+
+            const updatedAddress = this.customerAddressDao.findById(addressId);
+
+            return { success: true, address: updatedAddress };
+        } catch (error) {
+            console.error("Failed to update address:", error);
+            return { error: "Internal Server Error" };
+        }
+    }
+
     @Put("/account/address/:id")
     public updateAddress(body: types.UpdateAddress, ctx: any) {
         const addressId = ctx.pathParameters.id;
@@ -148,7 +180,6 @@ class AccountService {
         const loggedCustomer = utils.mapCustomer(userIdentifier);
 
         if (customerFromAddress !== loggedCustomer) {
-            ctx.status = 403;
             return { error: "Forbidden" };
         }
 
@@ -170,12 +201,11 @@ class AccountService {
             this.customerAddressDao.update(addressToUpdate);
 
             const updatedAddress = this.customerAddressDao.findById(addressId);
-
-            ctx.status = 200;
+            response.setStatus(response.OK);
             return { success: true, address: updatedAddress };
         } catch (error) {
             console.error("Failed to update address:", error);
-            ctx.status = 500;
+            response.setStatus(response.INTERNAL_SERVER_ERROR);
             return { error: "Internal Server Error" };
         }
     }
