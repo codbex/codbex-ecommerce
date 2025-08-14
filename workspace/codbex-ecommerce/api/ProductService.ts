@@ -1,10 +1,17 @@
-import { Controller, Get, response } from "sdk/http";
+import { Controller, Get, response, client } from "sdk/http";
 import { query, sql } from 'sdk/db';
 import * as utils from './UtilsService';
 import { Money, Category, Brand, ErrorResponse } from './types/Types';
 
 @Controller
 class ProductService {
+
+    @Get("/content/footer")
+    public footerData() {
+        const resp = client.get('http://localhost:8080/public/js/documents/api/documents.js/preview?path=/hayat-documents/footer.json');
+
+        return JSON.parse(resp.text);
+    }
 
     @Get("/categories")
     public categoriesData(): Category[] | ErrorResponse {
@@ -72,22 +79,33 @@ class ProductService {
     }
 
     @Get("/countries")
-    public countriesData() {
-        const sqlQuery = sql.getDialect()
-            .select()
-            .column('COUNTRY_NAME')
-            .column('COUNTRY_CODE3')
-            .from('CODBEX_COUNTRY')
-            .build();
+    public countriesData(): { name: string; code: string }[] | ErrorResponse {
+        try {
+            const sqlQuery = sql.getDialect()
+                .select()
+                .column('COUNTRY_NAME')
+                .column('COUNTRY_CODE3')
+                .from('CODBEX_COUNTRY')
+                .build();
 
-        const countryResult = query.execute(sqlQuery, []);
+            const countryResult = query.execute(sqlQuery, []) || [];
 
-        const allCountries = countryResult.map(row => ({
-            name: row.COUNTRY_NAME,
-            code: row.COUNTRY_CODE3
-        }));
+            if (countryResult.length === 0) {
+                response.setStatus(response.BAD_REQUEST);
+                return utils.createErrorResponse(response.BAD_REQUEST, 'Something went wrong', 'No countries found');
+            }
 
-        return allCountries;
+            const allCountries = countryResult.map(row => ({
+                name: row.COUNTRY_NAME,
+                code: row.COUNTRY_CODE3
+            }));
+
+            return allCountries;
+
+        } catch (error: any) {
+            response.setStatus(response.INTERNAL_SERVER_ERROR);
+            return utils.createErrorResponse(response.INTERNAL_SERVER_ERROR, 'Something went wrong', error);
+        }
     }
 
     @Get("/products")

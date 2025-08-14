@@ -58,7 +58,7 @@ export function mapCurrencyCode(currencyId: number) {
 }
 
 export function countryToId(countryName: string) {
-    return getColumnByWhere<number>('CODBEX_COUNTRY', 'COUNTRY_ID', 'COUNTRY_NAME = ?', [countryName]);
+    return getColumnByWhere<number>('CODBEX_COUNTRY', 'COUNTRY_ID', 'COUNTRY_CODE3 = ?', [countryName]);
 }
 
 export function mapCountry(countryId: number) {
