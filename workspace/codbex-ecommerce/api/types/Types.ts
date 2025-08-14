@@ -87,7 +87,6 @@ export interface UpdateAccount {
     firstName: string;
     lastName: string;
     phoneNumber: string;
-    email: string;
 }
 
 export interface Customer {

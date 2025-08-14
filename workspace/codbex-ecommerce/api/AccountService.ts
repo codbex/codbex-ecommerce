@@ -212,6 +212,7 @@ class AccountService {
     @Post("/account/details")
     public updateAccount(body: types.UpdateAccount) {
         const loggedCustomer = utils.mapCustomer(user.getName());
+        const customerEmail = utils.getCustomerEmail(loggedCustomer);
 
         const accountToUpdate = {
             Id: loggedCustomer,
@@ -219,7 +220,7 @@ class AccountService {
             LastName: body.lastName,
             Name: `${body.firstName} ${body.lastName}`,
             Phone: body.phoneNumber,
-            Email: body.email,
+            Email: customerEmail
         };
 
         try {

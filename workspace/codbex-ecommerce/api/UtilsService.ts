@@ -49,6 +49,10 @@ export function mapCustomer(identifier: string) {
     return getColumnByWhere<number>('CODBEX_CUSTOMER', 'CUSTOMER_ID', 'CUSTOMER_IDENTIFIER = ?', [identifier]);
 }
 
+export function getCustomerEmail(id: number) {
+    return getColumnByWhere<string>('CODBEX_CUSTOMER', 'CUSTOMER_EMAIL', 'CUSTOMER_id = ?', [id]);
+}
+
 export function mapStatus(statusId: number) {
     return getColumnByWhere<string>('CODBEX_SALESORDERSTATUS', 'SALESORDERSTATUS_NAME', 'SALESORDERSTATUS_ID = ?', [statusId]);
 }
