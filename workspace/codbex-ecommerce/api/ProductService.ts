@@ -1,4 +1,4 @@
-import { Controller, Get, response, client } from "sdk/http";
+import { Controller, Get, response, client, request } from "sdk/http";
 import { query, sql } from 'sdk/db';
 import * as utils from './UtilsService';
 import { Money, Category, Brand, ErrorResponse } from './types/Types';
@@ -8,7 +8,11 @@ class ProductService {
 
     @Get("/content/footer")
     public footerData() {
-        const resp = client.get('https://ecommerce.eu1.codbex.com/public/js/documents/api/documents.js/preview?path=/hayat-documents/footer.json');
+
+        const protocol = request.getScheme() + "://";
+        const domain = request.getHeader("Host")
+
+        const resp = client.get(`${protocol}${domain}/public/js/documents/api/documents.js/preview?path=/hayat-documents/footer.json`);
 
         return JSON.parse(resp.text);
     }
