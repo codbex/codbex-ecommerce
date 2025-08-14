@@ -3,6 +3,28 @@ export interface Money {
     currency: string;
 };
 
+export interface ErrorResponse {
+    errorType: string;
+    errorMessage: string;
+    errorCauses?: ErrorCause[];
+}
+export interface ErrorCause {
+    errorType?: string;
+    errorMessage: string;
+    field?: string;
+}
+
+export interface Category {
+    id: string;
+    title: string;
+    productCount: number;
+}
+
+export interface Brand {
+    id: string;
+    name: string;
+}
+
 export interface SalesOrder {
     id: string;
     creationDate: string;

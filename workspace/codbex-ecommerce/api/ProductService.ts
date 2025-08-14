@@ -1,51 +1,74 @@
-import { Controller, Get } from "sdk/http";
+import { Controller, Get, response } from "sdk/http";
 import { query, sql } from 'sdk/db';
-import { Money } from './types/Types';
+import * as utils from './UtilsService';
+import { Money, Category, Brand, ErrorResponse } from './types/Types';
 
 @Controller
 class ProductService {
 
     @Get("/categories")
-    public categoriesData() {
-        const categoryQuery = sql.getDialect()
-            .select()
-            .column('PRODUCTCATEGORY_ID')
-            .column('PRODUCTCATEGORY_NAME')
-            .column('COUNT(PRODUCT_ID) PRCOUNT')
-            .from('CODBEX_PRODUCTCATEGORY')
-            .leftJoin('CODBEX_PRODUCT', 'PRODUCT_CATEGORY = PRODUCTCATEGORY_ID')
-            .group('PRODUCTCATEGORY_ID')
-            .group('PRODUCTCATEGORY_NAME')
-            .build();
+    public categoriesData(): Category[] | ErrorResponse {
+        try {
+            const categoryQuery = sql.getDialect()
+                .select()
+                .column('PRODUCTCATEGORY_ID')
+                .column('PRODUCTCATEGORY_NAME')
+                .column('COUNT(PRODUCT_ID) PRCOUNT')
+                .from('CODBEX_PRODUCTCATEGORY')
+                .leftJoin('CODBEX_PRODUCT', 'PRODUCT_CATEGORY = PRODUCTCATEGORY_ID')
+                .group('PRODUCTCATEGORY_ID')
+                .group('PRODUCTCATEGORY_NAME')
+                .build();
 
-        const categoryResult = query.execute(categoryQuery, []);
+            const categoryResult = query.execute(categoryQuery, []) || [];
 
-        const categories = categoryResult.map(row => ({
-            id: String(row.PRODUCTCATEGORY_ID),
-            title: row.PRODUCTCATEGORY_NAME,
-            productCount: row.PRCOUNT
-        }));
+            if (categoryResult.length === 0) {
+                response.setStatus(response.BAD_REQUEST);
+                return utils.createErrorResponse(response.BAD_REQUEST, 'Something went wrong', 'No categories found');
+            }
 
-        return categories;
+            const categories: Category[] = categoryResult.map(row => ({
+                id: String(row.PRODUCTCATEGORY_ID),
+                title: row.PRODUCTCATEGORY_NAME,
+                productCount: row.PRCOUNT
+            }));
+
+            return categories;
+
+        } catch (error: any) {
+            response.setStatus(response.INTERNAL_SERVER_ERROR);
+            return utils.createErrorResponse(response.INTERNAL_SERVER_ERROR, 'Something went wrong', error);
+        }
     }
 
     @Get("/brands")
-    public brandsData() {
-        const sqlQuery = sql.getDialect()
-            .select()
-            .column('MANUFACTURER_ID')
-            .column('MANUFACTURER_NAME')
-            .from('CODBEX_MANUFACTURER')
-            .build();
+    public getBrands(): Brand[] | ErrorResponse {
+        try {
+            const brandsQuery = sql.getDialect()
+                .select()
+                .column('MANUFACTURER_ID')
+                .column('MANUFACTURER_NAME')
+                .from('CODBEX_MANUFACTURER')
+                .build();
 
-        const brandsResult = query.execute(sqlQuery, []);
+            const brandsResult = query.execute(brandsQuery) || [];
 
-        const allBrands = brandsResult.map(row => ({
-            id: String(row.MANUFACTURER_ID),
-            name: row.MANUFACTURER_NAME
-        }));
+            if (brandsResult.length === 0) {
+                response.setStatus(response.BAD_REQUEST);
+                return utils.createErrorResponse(response.BAD_REQUEST, 'Something went wrong', 'No brands found');
+            }
 
-        return allBrands;
+            const allBrands: Brand[] = brandsResult.map(row => ({
+                id: String(row.MANUFACTURER_ID),
+                name: row.MANUFACTURER_NAME
+            }));
+
+            return allBrands;
+
+        } catch (error: any) {
+            response.setStatus(response.INTERNAL_SERVER_ERROR);
+            return utils.createErrorResponse(response.INTERNAL_SERVER_ERROR, 'Something went wrong', error);
+        }
     }
 
     @Get("/countries")
@@ -336,6 +359,5 @@ function getCurrencyCodeForSingleProduct(currencyId: number) {
     const result = query.execute(currencyQuery, [currencyId]);
     return result.length > 0 ? result[0].CURRENCY_CODE : null;
 }
-
 
 

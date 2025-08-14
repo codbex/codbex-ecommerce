@@ -1,4 +1,28 @@
 import { query, sql } from 'sdk/db';
+import { uuid } from "sdk/utils";
+import { ErrorResponse } from './types/Types'
+
+export function createErrorResponse(
+    statusCode: number,
+    message: string,
+    originalError?: unknown
+): ErrorResponse {
+    const errorId = uuid.random();
+
+    if (originalError) {
+        console.error(`Error occurred '${errorId}' :`, originalError);
+    } else {
+        console.error(`Error occurred '${errorId}' : ${message}`);
+    }
+
+    return {
+        errorType: String(statusCode),
+        errorMessage: message,
+        errorCauses: [
+            { errorMessage: `Please contact us providing the following error ID '${errorId}'` },
+        ],
+    };
+}
 
 function getColumnByWhere<T>(
     table: string,
