@@ -8,7 +8,7 @@ class ProductService {
 
     @Get("/content/footer")
     public footerData() {
-        const resp = client.get('http://localhost:8080/public/js/documents/api/documents.js/preview?path=/hayat-documents/footer.json');
+        const resp = client.get('https://ecommerce.eu1.codbex.com/public/js/documents/api/documents.js/preview?path=/hayat-documents/footer.json');
 
         return JSON.parse(resp.text);
     }
