@@ -45,15 +45,17 @@ class AccountService {
             .build();
 
         const allAddresses = query.execute(addressQuery, [customer]).map(row => {
-            const country = utils.mapCountry(row.CUSTOMERADDRESS_COUNTRY);
+            const countryCode = utils.getCountryCode(row.CUSTOMERADDRESS_COUNTRY);
+            const countryName = utils.getCountryName(row.CUSTOMERADDRESS_COUNTRY);
             const city = utils.mapCity(row.CUSTOMERADDRESS_CITY);
 
             return {
                 id: row.CUSTOMERADDRESS_ID,
                 firstName: row.CUSTOMERADDRESS_FIRSTNAME,
                 lastName: row.CUSTOMERADDRESS_LASTNAME,
-                country,
-                addressLine1: row.CUSTOMERADDRESS_ADDRESSLINE1,
+                country: countryCode,
+                countryName: countryName,
+                addressLine1: row.CUSTOMERADDRESS_ADRESSLINE1,
                 addressLine2: row.CUSTOMERADDRESS_ADDRESSLINE2,
                 city,
                 postalCode: row.CUSTOMERADDRESS_POSTALCODE,

@@ -45,6 +45,7 @@ export interface Address {
     firstName: string;
     lastName: string;
     country: string;
+    countryName: string;
     addressLine1: string;
     addressLine2: string;
     city: string;

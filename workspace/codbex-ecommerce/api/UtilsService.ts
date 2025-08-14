@@ -65,7 +65,11 @@ export function countryToId(countryName: string) {
     return getColumnByWhere<number>('CODBEX_COUNTRY', 'COUNTRY_ID', 'COUNTRY_CODE3 = ?', [countryName]);
 }
 
-export function mapCountry(countryId: number) {
+export function getCountryCode(countryId: number) {
+    return getColumnByWhere<string>('CODBEX_COUNTRY', 'COUNTRY_CODE3', 'COUNTRY_ID = ?', [countryId]);
+}
+
+export function getCountryName(countryId: number) {
     return getColumnByWhere<string>('CODBEX_COUNTRY', 'COUNTRY_NAME', 'COUNTRY_ID = ?', [countryId]);
 }
 
