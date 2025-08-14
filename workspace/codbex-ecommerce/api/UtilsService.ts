@@ -29,7 +29,7 @@ function getColumnByWhere<T>(
     column: string,
     whereClause: string,
     params: any[]
-): T {
+): T | undefined {
     const q = sql.getDialect()
         .select()
         .column(column)
@@ -38,7 +38,7 @@ function getColumnByWhere<T>(
         .build();
 
     const result = query.execute(q, params);
-    return result[0][column] as T;
+    return result.length === 0 ? undefined : result[0][column] as T;
 }
 
 export function getCustomerFromAddress(addressId: number) {
@@ -70,7 +70,8 @@ export function mapCountry(countryId: number) {
 }
 
 export function cityToId(cityName: string) {
-    return getColumnByWhere<number>('CODBEX_CITY', 'CITY_ID', 'CITY_NAME = ?', [cityName]);
+    const id = getColumnByWhere<number>('CODBEX_CITY', 'CITY_ID', 'CITY_NAME = ?', [cityName]);
+    return id;
 }
 
 export function mapCity(cityId: number) {

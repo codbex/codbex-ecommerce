@@ -4,6 +4,7 @@ import * as utils from './UtilsService';
 import { user } from 'sdk/security';
 import * as types from './types/Types';
 
+import { CityRepository as CityDao } from "codbex-cities/gen/codbex-cities/dao/Settings/CityRepository";
 import { CustomerAddressRepository as CustomerAddressDao } from "codbex-partners/gen/codbex-partners/dao/Customers/CustomerAddressRepository";
 import { CustomerRepository as CustomerDao } from "codbex-partners/gen/codbex-partners/dao/Customers/CustomerRepository";
 
@@ -12,10 +13,12 @@ class AccountService {
 
     private readonly customerAddressDao;
     private readonly customerDao;
+    private readonly cityDao;
 
     constructor() {
         this.customerAddressDao = new CustomerAddressDao();
         this.customerDao = new CustomerDao();
+        this.cityDao = new CityDao();
     }
 
     @Get("/account/addresses")
@@ -144,14 +147,23 @@ class AccountService {
         const loggedCustomer = utils.mapCustomer(user.getName());
         const addressType = utils.mapAddress(body.addressType);
 
+        const countryId = utils.countryToId(body.country);
+        let cityId = utils.cityToId(body.city);
+
+        console.log(cityId);
+
+        if (cityId === undefined) {
+            cityId = this.cityDao.create({ Name: body.city, Country: countryId });
+        }
+
         const addressToAdd = {
             Customer: loggedCustomer,
             FirstName: body.firstName,
             LastName: body.lastName,
             Email: body.email,
             Phone: body.phoneNumber,
-            Country: utils.countryToId(body.country),
-            City: utils.cityToId(body.city),
+            Country: countryId,
+            City: cityId,
             AddressLine1: body.addressLine1,
             AddressLine2: body.addressLine2 || '',
             PostalCode: body.postalCode,
@@ -175,6 +187,16 @@ class AccountService {
         const addressId = ctx.pathParameters.id;
         const userIdentifier = user.getName();
 
+        const countryId = utils.countryToId(body.country);
+        let cityId = utils.cityToId(body.city);
+
+        console.log(cityId);
+
+        if (cityId === undefined) {
+            cityId = this.cityDao.create({ Name: body.city, Country: countryId });
+        }
+
+
         const customerFromAddress = utils.getCustomerFromAddress(addressId);
         const loggedCustomer = utils.mapCustomer(userIdentifier);
 
@@ -189,8 +211,8 @@ class AccountService {
             LastName: body.lastName,
             Email: body.email,
             Phone: body.phoneNumber,
-            Country: utils.countryToId(body.country),
-            City: utils.cityToId(body.city),
+            Country: countryId,
+            City: cityId,
             AddressLine1: body.addressLine1,
             AddressLine2: body.addressLine2 || '',
             PostalCode: body.postalCode
