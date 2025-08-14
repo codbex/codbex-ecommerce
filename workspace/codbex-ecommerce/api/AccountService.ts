@@ -53,7 +53,7 @@ class AccountService {
                 firstName: row.CUSTOMERADDRESS_FIRSTNAME,
                 lastName: row.CUSTOMERADDRESS_LASTNAME,
                 country,
-                addressLine1: row.CUSTOMERADDRESS_ADDRESSLINE1,
+                addressLine1: row.CUSTOMERADDRESS_ADRESSLINE1,
                 addressLine2: row.CUSTOMERADDRESS_ADDRESSLINE2,
                 city,
                 postalCode: row.CUSTOMERADDRESS_POSTALCODE,
