@@ -24,6 +24,7 @@ class ProductService {
                 .select()
                 .column('PRODUCTCATEGORY_ID')
                 .column('PRODUCTCATEGORY_NAME')
+                .column('PRODUCTCATEGORY_PATH')
                 .column('COUNT(PRODUCT_ID) PRCOUNT')
                 .from('CODBEX_PRODUCTCATEGORY')
                 .leftJoin('CODBEX_PRODUCT', 'PRODUCT_CATEGORY = PRODUCTCATEGORY_ID')
@@ -41,6 +42,7 @@ class ProductService {
             const categories: Category[] = categoryResult.map(row => ({
                 id: String(row.PRODUCTCATEGORY_ID),
                 title: row.PRODUCTCATEGORY_NAME,
+                image: row.PRODUCTCATEGORY_PATH,
                 productCount: row.PRCOUNT
             }));
 
