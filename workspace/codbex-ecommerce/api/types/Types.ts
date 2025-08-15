@@ -17,6 +17,7 @@ export interface ErrorCause {
 export interface Category {
     id: string;
     title: string;
+    image: string;
     productCount: number;
 }
 
