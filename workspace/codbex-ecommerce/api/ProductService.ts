@@ -124,6 +124,7 @@ class ProductService {
             .column('PRODUCT_CATEGORY')
             .column('PRODUCT_SHORTDESCRIPTION')
             .column('PRODUCT_PRICE')
+            .column('PRODUCT_MANUFACTURER')
             .column('PRODUCT_CURRENCY')
             .from('CODBEX_PRODUCT')
             .limit(30)
@@ -132,9 +133,6 @@ class ProductService {
         const products = query.execute(productQuery);
 
         const productIds = products.map(p => p.PRODUCT_ID);
-
-        console.log("eeeee");
-
 
         const imageMap = fetchImagesForProducts(productIds);
         const availabilityMap = fetchAvailabilityForProducts(productIds);
@@ -151,12 +149,16 @@ class ProductService {
                 title: p.PRODUCT_TITLE,
                 shortDescription: p.PRODUCT_SHORTDESCRIPTION,
                 price: {
-                    amount: productCampaign ? productCampaign.oldPrice : p.PRODUCT_PRICE,
+                    amount: productCampaign ? productCampaign.newPrice : p.PRODUCT_PRICE,
                     currency: currencyCode,
                 } as Money,
                 discountPrice: productCampaign
                     ? { amount: productCampaign.newPrice, currency: currencyCode } as Money
                     : null,
+                oldPrice: productCampaign
+                    ? { amount: productCampaign.oldPrice, currency: currencyCode } as Money
+                    : null,
+                brand: p.PRODUCT_MANUFACTURER,
                 discountPercentage: productCampaign?.discountPercentage ?? null,
                 category: p.PRODUCT_CATEGORY,
                 availableForSale: isAvailable,
@@ -245,11 +247,14 @@ class ProductService {
             description: productsResult.PRODUCT_DESCRIPTION,
             shortDescription: productsResult.PRODUCT_SHORTDESCRIPTION,
             price: {
-                amount: productCampaign ? productCampaign.oldPrice : productsResult.PRODUCT_PRICE,
+                amount: productCampaign ? productCampaign.newPrice : productsResult.PRODUCT_PRICE,
                 currency: currencyCode,
             } as Money,
             discountPrice: productCampaign
                 ? { amount: productCampaign.newPrice, currency: currencyCode } as Money
+                : null,
+            oldPrice: productCampaign
+                ? { amount: productCampaign.oldPrice, currency: currencyCode } as Money
                 : null,
             discountPercentage: productCampaign?.discountPercentage ?? null,
             availableForSale: availabilityResult.PRODUCTAVAILABILITY_QUANTITY > 0,
@@ -270,6 +275,7 @@ class ProductService {
             .column('PRODUCT_PRICE')
             .column('PRODUCT_SHORTDESCRIPTION')
             .column('PRODUCT_CURRENCY')
+            .column('PRODUCT_MANUFACTURER')
             .column('PRODUCT_CATEGORY')
             .from('CODBEX_PRODUCT')
             .where('PRODUCT_CATEGORY = ?')
@@ -294,12 +300,16 @@ class ProductService {
                 title: p.PRODUCT_TITLE,
                 shortDescription: p.PRODUCT_SHORTDESCRIPTION,
                 price: {
-                    amount: productCampaign ? productCampaign.oldPrice : p.PRODUCT_PRICE,
+                    amount: productCampaign ? productCampaign.newPrice : p.PRODUCT_PRICE,
                     currency: currencyCode,
                 } as Money,
                 discountPrice: productCampaign
                     ? { amount: productCampaign.newPrice, currency: currencyCode } as Money
                     : null,
+                oldPrice: productCampaign
+                    ? { amount: productCampaign.oldPrice, currency: currencyCode } as Money
+                    : null,
+                brand: p.PRODUCT_MANUFACTURER,
                 discountPercentage: productCampaign?.discountPercentage ?? null,
                 category: p.PRODUCT_CATEGORY,
                 availableForSale: isAvailable,
