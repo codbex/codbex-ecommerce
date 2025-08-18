@@ -133,6 +133,9 @@ class ProductService {
 
         const productIds = products.map(p => p.PRODUCT_ID);
 
+        console.log("eeeee");
+
+
         const imageMap = fetchImagesForProducts(productIds);
         const availabilityMap = fetchAvailabilityForProducts(productIds);
         const currencyMap = mapProductIdToCurrencyCode(products);
@@ -188,7 +191,7 @@ class ProductService {
             .column('PRODUCTATTRIBUTE_NAME')
             .column('PRODUCTATTRIBUTE_VALUE')
             .column('PRODUCTATTRIBUTEGROUP_NAME')
-            .from('CODBEX_PRODUCTATTRIBUTE pa')
+            .from('CODBEX_PRODUCTATTRIBUTE')
             .leftJoin('CODBEX_PRODUCTATTRIBUTEGROUP', 'PRODUCTATTRIBUTE_GROUP = PRODUCTATTRIBUTEGROUP_ID')
             .where('PRODUCTATTRIBUTE_PRODUCT = ?')
             .build();
@@ -232,6 +235,8 @@ class ProductService {
             });
         }
 
+        const productCampaign = getCampaign(productId);
+
         return {
             id: String(productsResult.PRODUCT_ID),
             title: productsResult.PRODUCT_TITLE,
@@ -240,9 +245,13 @@ class ProductService {
             description: productsResult.PRODUCT_DESCRIPTION,
             shortDescription: productsResult.PRODUCT_SHORTDESCRIPTION,
             price: {
-                amount: productsResult.PRODUCT_PRICE,
+                amount: productCampaign ? productCampaign.oldPrice : productsResult.PRODUCT_PRICE,
                 currency: currencyCode,
             } as Money,
+            discountPrice: productCampaign
+                ? { amount: productCampaign.newPrice, currency: currencyCode } as Money
+                : null,
+            discountPercentage: productCampaign?.discountPercentage ?? null,
             availableForSale: availabilityResult.PRODUCTAVAILABILITY_QUANTITY > 0,
             featuredImage: featuredImage ? featuredImage.PRODUCTIMAGE_IMAGELINK : null,
             images: imagesResult.map(img => img.PRODUCTIMAGE_IMAGELINK),
@@ -278,15 +287,20 @@ class ProductService {
             const imageData = imageMap.get(p.PRODUCT_ID) ?? { featuredImage: null, images: [] };
             const isAvailable = availabilityMap.get(p.PRODUCT_ID) ?? false;
             const currencyCode = currencyMap.get(p.PRODUCT_ID) ?? 'UNKNOWN';
+            const productCampaign = getCampaign(p.PRODUCT_ID);
 
             return {
                 id: String(p.PRODUCT_ID),
                 title: p.PRODUCT_TITLE,
                 shortDescription: p.PRODUCT_SHORTDESCRIPTION,
                 price: {
-                    amount: p.PRODUCT_PRICE,
+                    amount: productCampaign ? productCampaign.oldPrice : p.PRODUCT_PRICE,
                     currency: currencyCode,
                 } as Money,
+                discountPrice: productCampaign
+                    ? { amount: productCampaign.newPrice, currency: currencyCode } as Money
+                    : null,
+                discountPercentage: productCampaign?.discountPercentage ?? null,
                 category: p.PRODUCT_CATEGORY,
                 availableForSale: isAvailable,
                 featuredImage: imageData.featuredImage,
@@ -300,9 +314,12 @@ class ProductService {
 }
 
 function getCampaign(productId: number) {
+    console.log("pr id", productId);
+
     const productQuery = sql.getDialect()
         .select()
         .column('CAMPAIGNENTRY_OLDPRICE')
+        .column('CAMPAIGNENTRY_CAMPAIGN')
         .column('CAMPAIGNENTRY_NEWPRICE')
         .column('CAMPAIGNENTRY_PERCENT')
         .from('CODBEX_CAMPAIGNENTRY')
@@ -311,11 +328,44 @@ function getCampaign(productId: number) {
 
     const products = query.execute(productQuery, [productId]);
 
-    return {
-        oldPrice: products[0].CAMPAIGNENTRY_OLDPRICE,
-        newPrice: products[0].CAMPAIGNENTRY_NEWPRICE,
-        discountPercentage: products[0].CAMPAIGNENTRY_PERCENT
-    };
+    if (!products || products.length === 0) {
+        return null;
+    }
+
+    const campaignId = products[0].CAMPAIGNENTRY_CAMPAIGN;
+    if (!campaignId) {
+        return null;
+    }
+
+    const campaignQuery = sql.getDialect()
+        .select()
+        .column('CAMPAIGN_STARTDATE')
+        .column('CAMPAIGN_ENDDATE')
+        .from('CODBEX_CAMPAIGN')
+        .where('CAMPAIGN_ID = ?')
+        .build();
+
+    const campaigns = query.execute(campaignQuery, [campaignId]);
+
+    if (!campaigns || campaigns.length === 0) {
+        return null;
+    }
+
+    const startDate = new Date(campaigns[0].CAMPAIGN_STARTDATE);
+    const endDate = new Date(campaigns[0].CAMPAIGN_ENDDATE);
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const isTodayInRange = today >= startDate && today <= endDate;
+
+    return isTodayInRange
+        ? {
+            oldPrice: products[0].CAMPAIGNENTRY_OLDPRICE,
+            newPrice: products[0].CAMPAIGNENTRY_NEWPRICE,
+            discountPercentage: products[0].CAMPAIGNENTRY_PERCENT
+        }
+        : null;
 }
 
 function fetchImagesForProducts(productIds: number[]) {
