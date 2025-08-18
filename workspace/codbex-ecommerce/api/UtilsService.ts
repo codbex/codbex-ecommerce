@@ -82,6 +82,14 @@ export function mapCity(cityId: number) {
     return getColumnByWhere<string>('CODBEX_CITY', 'CITY_NAME', 'CITY_ID = ?', [cityId]);
 }
 
+export function mapSentMethod(sentMethodId: number) {
+    return getColumnByWhere<string>('CODBEX_SENTMETHOD', 'SENTMETHOD_NAME', 'SENTMETHOD_ID = ?', [sentMethodId]);
+}
+
 export function mapAddress(addressName: string) {
     return getColumnByWhere<number>('CODBEX_CUSTOMERADDRESSTYPE', 'CUSTOMERADDRESSTYPE_ID', 'CUSTOMERADDRESSTYPE_NAME = ?', [addressName]);
+}
+
+export function getCustomerFromOrder(orderId: number) {
+    return getColumnByWhere<number>('CODBEX_SALESORDER', 'SALESORDER_CUSTOMER', 'SALESORDER_ID = ?', [orderId]);
 }

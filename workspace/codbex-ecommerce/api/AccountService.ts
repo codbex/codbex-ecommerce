@@ -144,6 +144,99 @@ class AccountService {
         return salesOrders;
     }
 
+    @Get("/account/orders/:id")
+    public orderDetails(_: any, ctx: any) {
+        const loggedCustomer = utils.mapCustomer(user.getName());
+        const orderId = ctx.pathParameters.id;
+
+        const customerFromOrder = utils.getCustomerFromOrder(orderId);
+
+        if (customerFromOrder !== loggedCustomer) {
+            return { error: "Forbidden" };
+        }
+
+        const addressQuery = sql.getDialect()
+            .select()
+            .column('CUSTOMERADDRESS_ID')
+            .column('CUSTOMERADDRESS_FIRSTNAME')
+            .column('CUSTOMERADDRESS_LASTNAME')
+            .column('CUSTOMERADDRESS_EMAIL')
+            .column('CUSTOMERADDRESS_PHONE')
+            .column('CUSTOMERADDRESS_ADRESSLINE1')
+            .column('CUSTOMERADDRESS_ADDRESSLINE2')
+            .column('CUSTOMERADDRESS_COUNTRY')
+            .column('CUSTOMERADDRESS_CITY')
+            .column('CUSTOMERADDRESS_POSTALCODE')
+            .column('CUSTOMERADDRESS_CUSTOMER')
+            .column('CUSTOMERADDRESS_CUSTOMERADDRESSTYPE')
+            .from('CODBEX_CUSTOMERADDRESS')
+            .where('CUSTOMERADDRESS_CUSTOMER = ?')
+            .build();
+
+
+        const salesOrderQuery = sql.getDialect()
+            .select()
+            .column('SALESORDER_SENTMETHOD')
+            .column('SALESORDER_SHIPPINGADDRESS')
+            .column('SALESORDER_BILLINGADDRESS')
+            .column('SALESORDER_DATE')
+            .column('SALESORDER_CURRENCY')
+            .column('SALESORDER_TOTAL')
+            .column('SALESORDER_STATUS')
+            .column('SALESORDER_CONDITIONS')
+            .from('CODBEX_SALESORDER')
+            .where('SALESORDER_ID = ?')
+            .build();
+
+        const salesOrderResults = query.execute(salesOrderQuery, [loggedCustomer]);
+
+        const allAddresses = query.execute(addressQuery, [loggedCustomer]).map(row => {
+            const countryCode = utils.getCountryCode(row.CUSTOMERADDRESS_COUNTRY);
+            const countryName = utils.getCountryName(row.CUSTOMERADDRESS_COUNTRY);
+            const city = utils.mapCity(row.CUSTOMERADDRESS_CITY);
+
+            return {
+                id: row.CUSTOMERADDRESS_ID,
+                firstName: row.CUSTOMERADDRESS_FIRSTNAME,
+                lastName: row.CUSTOMERADDRESS_LASTNAME,
+                country: countryCode,
+                countryName: countryName,
+                addressLine1: row.CUSTOMERADDRESS_ADRESSLINE1,
+                addressLine2: row.CUSTOMERADDRESS_ADDRESSLINE2,
+                city,
+                postalCode: row.CUSTOMERADDRESS_POSTALCODE,
+                phoneNumber: row.CUSTOMERADDRESS_PHONE,
+                email: row.CUSTOMERADDRESS_EMAIL,
+                addressType: row.CUSTOMERADDRESS_CUSTOMERADDRESSTYPE
+            };
+        });
+
+        const shippingAddress: types.Address[] = allAddresses
+            .filter(a => a.addressType === 1)
+            .map(({ addressType, ...rest }) => rest);
+
+        const billingAddress: types.Address[] = allAddresses
+            .filter(a => a.addressType === 2)
+            .map(({ addressType, ...rest }) => rest);
+
+        return {
+            id: String(orderId),
+            paymentMethod: "Cash",
+            shippingType: utils.mapSentMethod(salesOrderResults[0].SALESORDER_SENTMETHOD),
+            shippingAddress: shippingAddress,
+            billingAddress: billingAddress,
+            creationDate: salesOrderResults[0].SALESORDER_DATE,
+            totalAmount: {
+                amount: salesOrderResults[0].SALESORDER_TOTAL,
+                currency: utils.mapCurrencyCode(salesOrderResults[0].SALESORDER_CURRENCY)
+            },
+            status: utils.mapStatus(salesOrderResults[0].SALESORDER_STATUS),
+            notes: salesOrderResults[0].SALESORDER_CONDITIONS,
+            items: getSalesOrderItems(orderId)
+        }
+
+    }
+
     @Post("/account/address")
     public addAddress(body: types.AddAddress) {
         const loggedCustomer = utils.mapCustomer(user.getName());
@@ -192,12 +285,9 @@ class AccountService {
         const countryId = utils.countryToId(body.country);
         let cityId = utils.cityToId(body.city);
 
-        console.log(cityId);
-
         if (cityId === undefined) {
             cityId = this.cityDao.create({ Name: body.city, Country: countryId });
         }
-
 
         const customerFromAddress = utils.getCustomerFromAddress(addressId);
         const loggedCustomer = utils.mapCustomer(userIdentifier);
@@ -260,4 +350,22 @@ class AccountService {
             return { error: "Internal Server Error" };
         }
     }
+}
+
+function getSalesOrderItems(salesorderId: number) {
+
+    const salesOrderItemsQuery = sql.getDialect()
+        .select()
+        .column('SALESORDERITEM_ID')
+        .column('SALESORDERITEM_QUANTITY')
+        .from('CODBEX_SALESORDERITEM')
+        .where('SALESORDERITEM_SALESORDER = ?')
+        .build();
+
+    const salesOrderItemResult = query.execute(salesOrderItemsQuery, [salesorderId]);
+
+    return salesOrderItemResult.map(item => ({
+        productId: item.SALESORDERITEM_ID,
+        quantity: item.SALESORDERITEM_QUANTITY
+    }));
 }
