@@ -3,6 +3,26 @@ export interface Money {
     currency: string;
 };
 
+export interface CountryResponse {
+    name: string;
+    code: string;
+}
+
+export interface ProductResponse {
+    id: string;
+    title: string;
+    shortDescription: string;
+    price: Money;
+    discountPrice: Money | null;
+    oldPrice: Money | null;
+    brand: string;
+    discountPercentage: number | null;
+    category: string;
+    availableForSale: boolean;
+    featuredImage: string | null;
+    images: string[];
+}
+
 export interface ErrorResponse {
     errorType: string;
     errorMessage: string;

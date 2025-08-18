@@ -1,7 +1,7 @@
 import { Controller, Get, response, client, request } from "sdk/http";
 import { query, sql } from 'sdk/db';
 import * as utils from './UtilsService';
-import { Money, Category, Brand, ErrorResponse } from './types/Types';
+import { Money, Category, Brand, ErrorResponse, ProductResponse, CountryResponse } from './types/Types';
 
 @Controller
 class ProductService {
@@ -12,9 +12,9 @@ class ProductService {
         const protocol = request.getScheme() + "://";
         const domain = request.getHeader("Host")
 
-        const resp = client.get(`${protocol}${domain}/public/js/documents/api/documents.js/preview?path=/hayat-documents/footer.json`);
+        const clientResponse = client.get(`${protocol}${domain}/public/js/documents/api/documents.js/preview?path=/hayat-documents/footer.json`);
 
-        return JSON.parse(resp.text);
+        return JSON.parse(clientResponse.text);
     }
 
     @Get("/categories")
@@ -55,7 +55,7 @@ class ProductService {
     }
 
     @Get("/brands")
-    public getBrands(): Brand[] | ErrorResponse {
+    public brandsData(): Brand[] | ErrorResponse {
         try {
             const brandsQuery = sql.getDialect()
                 .select()
@@ -85,28 +85,28 @@ class ProductService {
     }
 
     @Get("/countries")
-    public countriesData(): { name: string; code: string }[] | ErrorResponse {
+    public countriesData(): CountryResponse[] | ErrorResponse {
         try {
-            const sqlQuery = sql.getDialect()
+            const countriesQuery = sql.getDialect()
                 .select()
                 .column('COUNTRY_NAME')
                 .column('COUNTRY_CODE3')
                 .from('CODBEX_COUNTRY')
                 .build();
 
-            const countryResult = query.execute(sqlQuery, []) || [];
+            const countryResult = query.execute(countriesQuery, []) || [];
 
             if (countryResult.length === 0) {
                 response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(response.BAD_REQUEST, 'Something went wrong', 'No countries found');
             }
 
-            const allCountries = countryResult.map(row => ({
+            const countries = countryResult.map(row => ({
                 name: row.COUNTRY_NAME,
                 code: row.COUNTRY_CODE3
             }));
 
-            return allCountries;
+            return countries;
 
         } catch (error: any) {
             response.setStatus(response.INTERNAL_SERVER_ERROR);
@@ -115,63 +115,81 @@ class ProductService {
     }
 
     @Get("/products")
-    public allProducts() {
+    public productsData(): ProductResponse[] | ErrorResponse {
+        try {
+            const productQuery = sql.getDialect()
+                .select()
+                .column('PRODUCT_ID')
+                .column('PRODUCT_TITLE')
+                .column('PRODUCT_CATEGORY')
+                .column('PRODUCT_SHORTDESCRIPTION')
+                .column('PRODUCT_PRICE')
+                .column('PRODUCT_MANUFACTURER')
+                .column('PRODUCT_CURRENCY')
+                .from('CODBEX_PRODUCT')
+                .limit(30)
+                .build();
 
-        const productQuery = sql.getDialect()
-            .select()
-            .column('PRODUCT_ID')
-            .column('PRODUCT_TITLE')
-            .column('PRODUCT_CATEGORY')
-            .column('PRODUCT_SHORTDESCRIPTION')
-            .column('PRODUCT_PRICE')
-            .column('PRODUCT_MANUFACTURER')
-            .column('PRODUCT_CURRENCY')
-            .from('CODBEX_PRODUCT')
-            .limit(30)
-            .build();
+            const products = query.execute(productQuery) || [];
 
-        const products = query.execute(productQuery);
+            if (products.length === 0) {
+                response.setStatus(response.BAD_REQUEST);
+                return utils.createErrorResponse(
+                    response.BAD_REQUEST,
+                    'Something went wrong',
+                    'No products found'
+                );
+            }
 
-        const productIds = products.map(p => p.PRODUCT_ID);
+            const productIds = products.map(p => p.PRODUCT_ID);
 
-        const imageMap = fetchImagesForProducts(productIds);
-        const availabilityMap = fetchAvailabilityForProducts(productIds);
-        const currencyMap = mapProductIdToCurrencyCode(products);
+            const imageMap = fetchImagesForProducts(productIds);
+            const availabilityMap = fetchAvailabilityForProducts(productIds);
+            const currencyMap = mapProductIdToCurrencyCode(products);
 
-        const productsResponse = products.map(p => {
-            const imageData = imageMap.get(p.PRODUCT_ID) ?? { featuredImage: null, images: [] };
-            const isAvailable = availabilityMap.get(p.PRODUCT_ID) ?? false;
-            const currencyCode = currencyMap.get(p.PRODUCT_ID) ?? 'UNKNOWN';
-            const productCampaign = getCampaign(p.PRODUCT_ID);
+            const productsResponse: ProductResponse[] = products.map(p => {
+                const imageData = imageMap.get(p.PRODUCT_ID) ?? { featuredImage: null, images: [] };
+                const isAvailable = availabilityMap.get(p.PRODUCT_ID) ?? false;
+                const currencyCode = currencyMap.get(p.PRODUCT_ID) ?? 'UNKNOWN';
+                const productCampaign = getCampaign(p.PRODUCT_ID);
 
-            return {
-                id: String(p.PRODUCT_ID),
-                title: p.PRODUCT_TITLE,
-                shortDescription: p.PRODUCT_SHORTDESCRIPTION,
-                price: {
-                    amount: productCampaign ? productCampaign.newPrice : p.PRODUCT_PRICE,
-                    currency: currencyCode,
-                } as Money,
-                discountPrice: productCampaign
-                    ? { amount: productCampaign.newPrice, currency: currencyCode } as Money
-                    : null,
-                oldPrice: productCampaign
-                    ? { amount: productCampaign.oldPrice, currency: currencyCode } as Money
-                    : null,
-                brand: p.PRODUCT_MANUFACTURER,
-                discountPercentage: productCampaign?.discountPercentage ?? null,
-                category: p.PRODUCT_CATEGORY,
-                availableForSale: isAvailable,
-                featuredImage: imageData.featuredImage,
-                images: imageData.images
-            };
-        });
+                return {
+                    id: String(p.PRODUCT_ID),
+                    title: p.PRODUCT_TITLE,
+                    shortDescription: p.PRODUCT_SHORTDESCRIPTION,
+                    price: {
+                        amount: productCampaign ? productCampaign.newPrice : p.PRODUCT_PRICE,
+                        currency: currencyCode,
+                    } as Money,
+                    discountPrice: productCampaign
+                        ? { amount: productCampaign.newPrice, currency: currencyCode }
+                        : null,
+                    oldPrice: productCampaign
+                        ? { amount: productCampaign.oldPrice, currency: currencyCode }
+                        : null,
+                    brand: String(p.PRODUCT_MANUFACTURER),
+                    discountPercentage: productCampaign?.discountPercentage ?? null,
+                    category: String(p.PRODUCT_CATEGORY),
+                    availableForSale: isAvailable,
+                    featuredImage: imageData.featuredImage,
+                    images: imageData.images
+                };
+            });
 
-        return productsResponse;
+            return productsResponse;
+
+        } catch (error: any) {
+            response.setStatus(response.INTERNAL_SERVER_ERROR);
+            return utils.createErrorResponse(
+                response.INTERNAL_SERVER_ERROR,
+                'Something went wrong',
+                error
+            );
+        }
     }
 
     @Get("/product/:productId")
-    public productData(_: any, ctx: any) {
+    public productByIdData(_: any, ctx: any) {
         const productId = ctx.pathParameters.productId;
 
         const productQuery = sql.getDialect()
