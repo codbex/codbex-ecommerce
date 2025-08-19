@@ -62,10 +62,10 @@ export interface AccountDetails {
 }
 
 export interface Address {
-    id: number;
+    id: string;
     firstName: string;
     lastName: string;
-    country: string;
+    country: string | undefined;
     countryName: string;
     addressLine1: string;
     addressLine2: string;

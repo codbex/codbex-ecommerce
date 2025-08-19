@@ -1,6 +1,6 @@
 import { query, sql } from 'sdk/db';
 import { uuid } from "sdk/utils";
-import { ErrorResponse } from './types/Types'
+import { ErrorResponse } from '../types/Types'
 
 export function createErrorResponse(
     statusCode: number,
