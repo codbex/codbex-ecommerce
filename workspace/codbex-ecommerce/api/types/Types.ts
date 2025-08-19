@@ -62,18 +62,19 @@ export interface AccountDetails {
 }
 
 export interface Address {
-    id: string;
+    id: number;
     firstName: string;
     lastName: string;
-    country: string | undefined;
+    country: string;
     countryName: string;
     addressLine1: string;
-    addressLine2: string;
+    addressLine2?: string;
     city: string;
     postalCode: string;
     phoneNumber: string;
     email: string;
 }
+
 
 export interface UpdateAddress {
     firstName: string;

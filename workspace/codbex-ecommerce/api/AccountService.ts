@@ -1,10 +1,11 @@
 import { Controller, Get, Put, Post, response } from "sdk/http";
 import { query, sql } from 'sdk/db';
 import * as utils from './utils/UtilsService';
+import * as accountUtils from './utils/AccountUtilsService';
 import { user } from 'sdk/security';
 import {
-    AddressesResponse, ErrorResponse, Address, AccountDetails,
-    SalesOrder, AddAddress, UpdateAddress, UpdateAccount
+    AddressesResponse, ErrorResponse, AccountDetails,
+    SalesOrder, AddAddress, UpdateAddress, UpdateAccount, Money
 } from './types/Types';
 
 import { CityRepository as CityDao } from "codbex-cities/gen/codbex-cities/dao/Settings/CityRepository";
@@ -27,9 +28,9 @@ class AccountService {
     @Get("/account/addresses")
     public addressesData(): AddressesResponse | ErrorResponse {
         try {
-            const customer = utils.mapCustomer(user.getName());
+            const loggedCustomer = utils.getCustomerByIdentifier(user.getName());
 
-            if (!customer) {
+            if (!loggedCustomer) {
                 response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
                     response.BAD_REQUEST,
@@ -55,50 +56,20 @@ class AccountService {
                 .where('CUSTOMERADDRESS_CUSTOMER = ?')
                 .build();
 
-            const allAddresses = query.execute(addressQuery, [customer]) || [];
+            const allAddresses = query.execute(addressQuery, [loggedCustomer]) || [];
 
             if (allAddresses.length === 0) {
-                response.setStatus(response.NOT_FOUND);
+                response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
-                    response.NOT_FOUND,
+                    response.BAD_REQUEST,
                     'Something went wrong',
                     'This customer has no saved addresses'
                 );
             }
 
-            const mappedAddresses = allAddresses.map(row => {
-                const countryCode = utils.getCountryCode(row.CUSTOMERADDRESS_COUNTRY);
-                const countryName = utils.getCountryName(row.CUSTOMERADDRESS_COUNTRY);
-                const city = utils.mapCity(row.CUSTOMERADDRESS_CITY);
+            const mappedAddresses = accountUtils.mapAddresses(allAddresses);
 
-                return {
-                    id: row.CUSTOMERADDRESS_ID,
-                    firstName: row.CUSTOMERADDRESS_FIRSTNAME,
-                    lastName: row.CUSTOMERADDRESS_LASTNAME,
-                    country: countryCode,
-                    countryName: countryName,
-                    addressLine1: row.CUSTOMERADDRESS_ADRESSLINE1,
-                    addressLine2: row.CUSTOMERADDRESS_ADDRESSLINE2,
-                    city,
-                    postalCode: row.CUSTOMERADDRESS_POSTALCODE,
-                    phoneNumber: row.CUSTOMERADDRESS_PHONE,
-                    email: row.CUSTOMERADDRESS_EMAIL,
-                    addressType: row.CUSTOMERADDRESS_CUSTOMERADDRESSTYPE
-                };
-            });
-
-            const shippingAddress: Address[] = mappedAddresses
-                .filter(a => a.addressType === 1)
-                .map(({ addressType, ...rest }) => rest);
-
-            const billingAddress: Address[] = mappedAddresses
-                .filter(a => a.addressType === 2)
-                .map(({ addressType, ...rest }) => rest);
-
-            return {
-                shippingAddress,
-                billingAddress
-            };
+            return mappedAddresses;
 
         } catch (error: any) {
             response.setStatus(response.INTERNAL_SERVER_ERROR);
@@ -113,7 +84,7 @@ class AccountService {
     @Get("/account/details")
     public accountData(): AccountDetails | ErrorResponse {
         try {
-            const customerId = utils.mapCustomer(user.getName());
+            const customerId = utils.getCustomerByIdentifier(user.getName());
 
             if (!customerId) {
                 response.setStatus(response.BAD_REQUEST);
@@ -138,22 +109,22 @@ class AccountService {
             const customerResult = query.execute(customerQuery, [customerId]);
 
             if (customerResult.length === 0) {
-                response.setStatus(response.NOT_FOUND);
+                response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
-                    response.NOT_FOUND,
+                    response.BAD_REQUEST,
                     'Something went wrong',
                     `No customer found with ID ${customerId}`
                 );
             }
 
-            const customer = customerResult[0];
+            const loggedCustomer = customerResult[0];
 
             return {
-                firstName: customer.CUSTOMER_FIRSTNAME,
-                lastName: customer.CUSTOMER_LASTNAME,
-                phoneNumber: customer.CUSTOMER_PHONE,
-                email: customer.CUSTOMER_EMAIL,
-                creationDate: customer.CUSTOMER_CREATEDAT
+                firstName: loggedCustomer.CUSTOMER_FIRSTNAME,
+                lastName: loggedCustomer.CUSTOMER_LASTNAME,
+                phoneNumber: loggedCustomer.CUSTOMER_PHONE,
+                email: loggedCustomer.CUSTOMER_EMAIL,
+                creationDate: loggedCustomer.CUSTOMER_CREATEDAT
             };
 
         } catch (error: any) {
@@ -161,7 +132,7 @@ class AccountService {
             return utils.createErrorResponse(
                 response.INTERNAL_SERVER_ERROR,
                 'Something went wrong',
-                error.message ?? String(error)
+                error.message ?? error
             );
         }
     }
@@ -169,7 +140,7 @@ class AccountService {
     @Get("/account/orders")
     public ordersData(): SalesOrder[] | ErrorResponse {
         try {
-            const customerId = utils.mapCustomer(user.getName());
+            const customerId = utils.getCustomerByIdentifier(user.getName());
 
             if (!customerId) {
                 response.setStatus(response.BAD_REQUEST);
@@ -198,8 +169,8 @@ class AccountService {
             }
 
             const salesOrders: SalesOrder[] = salesOrderResults.map(row => {
-                const currencyCode = utils.mapCurrencyCode(row.SALESORDER_CURRENCY);
-                const status = utils.mapStatus(row.SALESORDER_STATUS);
+                const currencyCode = utils.getCurrencyCode(row.SALESORDER_CURRENCY);
+                const status = utils.getSalesOrderStatus(row.SALESORDER_STATUS);
 
                 return {
                     id: String(row.SALESORDER_ID),
@@ -208,7 +179,7 @@ class AccountService {
                     totalAmount: {
                         amount: row.SALESORDER_TOTAL,
                         currency: currencyCode
-                    }
+                    } as Money
                 };
             });
 
@@ -219,7 +190,7 @@ class AccountService {
             return utils.createErrorResponse(
                 response.INTERNAL_SERVER_ERROR,
                 'Something went wrong',
-                error.message ?? String(error)
+                error.message ?? error
             );
         }
     }
@@ -227,14 +198,14 @@ class AccountService {
     @Get("/account/orders/:id")
     public orderDetails(_: any, ctx: any) {
         try {
-            const loggedCustomer = utils.mapCustomer(user.getName());
+            const loggedCustomer = utils.getCustomerByIdentifier(user.getName());
 
             if (!loggedCustomer) {
-                response.setStatus(response.UNAUTHORIZED);
+                response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
-                    response.UNAUTHORIZED,
-                    "Unauthorized",
-                    "Could not resolve logged-in customer"
+                    response.BAD_REQUEST,
+                    'Something went wrong',
+                    'Could not resolve customer from session'
                 );
             }
 
@@ -244,31 +215,30 @@ class AccountService {
                 response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
                     response.BAD_REQUEST,
-                    "Missing order id",
-                    "Order id is required"
+                    'Something went wrong',
+                    'Order id is required'
                 );
             }
 
-            const customerFromOrder = utils.getCustomerFromOrder(orderId);
+            const customerFromOrder = utils.getCustomerByOrder(orderId);
 
             if (!customerFromOrder) {
-                response.setStatus(response.NOT_FOUND);
+                response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
-                    response.NOT_FOUND,
-                    "Order not found",
-                    `No order with id ${orderId}`
+                    response.BAD_REQUEST,
+                    'Something went wrong',
+                    `No customer found from order with id ${orderId}`
                 );
             }
 
             if (customerFromOrder !== loggedCustomer) {
-                response.setStatus(response.FORBIDDEN);
+                response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
-                    response.FORBIDDEN,
-                    "Forbidden",
-                    "You are not allowed to access this order"
+                    response.BAD_REQUEST,
+                    'Something went wrong',
+                    'Attempt to access another user order'
                 );
             }
-
 
             const addressQuery = sql.getDialect()
                 .select()
@@ -288,7 +258,6 @@ class AccountService {
                 .where('CUSTOMERADDRESS_CUSTOMER = ?')
                 .build();
 
-
             const salesOrderQuery = sql.getDialect()
                 .select()
                 .column('SALESORDER_SENTMETHOD')
@@ -306,64 +275,38 @@ class AccountService {
             const salesOrderResults = query.execute(salesOrderQuery, [loggedCustomer]);
 
             if (!salesOrderResults || salesOrderResults.length === 0) {
-                response.setStatus(response.NOT_FOUND);
+                response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
-                    response.NOT_FOUND,
-                    "Order not found",
+                    response.BAD_REQUEST,
+                    'Something went wrong',
                     `No sales order found with id ${orderId}`
                 );
             }
 
-            const allAddresses = query.execute(addressQuery, [loggedCustomer]).map(row => {
-                const countryCode = utils.getCountryCode(row.CUSTOMERADDRESS_COUNTRY);
-                const countryName = utils.getCountryName(row.CUSTOMERADDRESS_COUNTRY);
-                const city = utils.mapCity(row.CUSTOMERADDRESS_CITY);
-
-                return {
-                    id: row.CUSTOMERADDRESS_ID,
-                    firstName: row.CUSTOMERADDRESS_FIRSTNAME,
-                    lastName: row.CUSTOMERADDRESS_LASTNAME,
-                    country: countryCode,
-                    countryName: countryName,
-                    addressLine1: row.CUSTOMERADDRESS_ADRESSLINE1,
-                    addressLine2: row.CUSTOMERADDRESS_ADDRESSLINE2,
-                    city,
-                    postalCode: row.CUSTOMERADDRESS_POSTALCODE,
-                    phoneNumber: row.CUSTOMERADDRESS_PHONE,
-                    email: row.CUSTOMERADDRESS_EMAIL,
-                    addressType: row.CUSTOMERADDRESS_CUSTOMERADDRESSTYPE
-                };
-            });
-
-            const shippingAddress: Address[] = allAddresses
-                .filter(a => a.addressType === 1)
-                .map(({ addressType, ...rest }) => rest);
-
-            const billingAddress: Address[] = allAddresses
-                .filter(a => a.addressType === 2)
-                .map(({ addressType, ...rest }) => rest);
+            const allAddresses = query.execute(addressQuery, [loggedCustomer]);
+            const mappedAddresses = accountUtils.mapAddresses(allAddresses);
 
             return {
                 id: String(orderId),
                 paymentMethod: "Cash",
-                shippingType: utils.mapSentMethod(salesOrderResults[0].SALESORDER_SENTMETHOD),
-                shippingAddress: shippingAddress,
-                billingAddress: billingAddress,
+                shippingType: utils.getSentMethodName(salesOrderResults[0].SALESORDER_SENTMETHOD),
+                shippingAddress: mappedAddresses.shippingAddress,
+                billingAddress: mappedAddresses.billingAddress,
                 creationDate: salesOrderResults[0].SALESORDER_DATE,
                 totalAmount: {
                     amount: salesOrderResults[0].SALESORDER_TOTAL,
-                    currency: utils.mapCurrencyCode(salesOrderResults[0].SALESORDER_CURRENCY)
+                    currency: utils.getCurrencyCode(salesOrderResults[0].SALESORDER_CURRENCY)
                 },
-                status: utils.mapStatus(salesOrderResults[0].SALESORDER_STATUS),
+                status: utils.getSalesOrderStatus(salesOrderResults[0].SALESORDER_STATUS),
                 notes: salesOrderResults[0].SALESORDER_CONDITIONS,
-                items: getSalesOrderItems(orderId)
+                items: accountUtils.getSalesOrderItems(orderId)
             }
         } catch (error: any) {
             response.setStatus(response.INTERNAL_SERVER_ERROR);
             return utils.createErrorResponse(
                 response.INTERNAL_SERVER_ERROR,
-                "Something went wrong while fetching order details",
-                error.message ?? String(error)
+                'Something went wrong',
+                error.message ?? error
             );
         }
     }
@@ -371,38 +314,49 @@ class AccountService {
     @Post("/account/address")
     public addAddress(body: AddAddress) {
         try {
-            const loggedCustomer = utils.mapCustomer(user.getName());
+            const loggedCustomer = utils.getCustomerByIdentifier(user.getName());
+
             if (!loggedCustomer) {
-                response.setStatus(response.UNAUTHORIZED);
-                return { error: "Unauthorized: could not resolve logged-in customer" };
+                response.setStatus(response.BAD_REQUEST);
+                return utils.createErrorResponse(
+                    response.BAD_REQUEST,
+                    'Something went wrong',
+                    'Could not resolve customer from session'
+                );
             }
 
             if (!body || !body.firstName || !body.lastName || !body.addressType || !body.country || !body.city) {
                 response.setStatus(response.BAD_REQUEST);
-                return { error: "Missing required fields" };
+                return utils.createErrorResponse(
+                    response.BAD_REQUEST,
+                    'Something went wrong',
+                    'Missing required fields'
+                );
             }
 
-            const addressType = utils.mapAddress(body.addressType);
+            const addressType = utils.getAddressId(body.addressType);
             if (!addressType) {
                 response.setStatus(response.BAD_REQUEST);
-                return { error: `Invalid address type: ${body.addressType}` };
+                return utils.createErrorResponse(
+                    response.BAD_REQUEST,
+                    'Something went wrong',
+                    `Invalid address type: ${body.addressType}`
+                );
             }
 
-            const countryId = utils.countryToId(body.country);
+            const countryId = utils.getCountryId(body.country);
             if (!countryId) {
                 response.setStatus(response.BAD_REQUEST);
-                return { error: `Invalid country: ${body.country}` };
+                return utils.createErrorResponse(
+                    response.BAD_REQUEST,
+                    'Something went wrong',
+                    `Invalid country: ${body.country}`
+                );
             }
 
-            let cityId = utils.cityToId(body.city);
+            let cityId = utils.getCityId(body.city);
             if (!cityId) {
-                try {
-                    cityId = this.cityDao.create({ Name: body.city, Country: countryId });
-                } catch (err) {
-                    console.error("Failed to create city:", err);
-                    response.setStatus(response.INTERNAL_SERVER_ERROR);
-                    return { error: "Failed to create city" };
-                }
+                cityId = this.cityDao.create({ Name: body.city, Country: countryId });
             }
 
             const addressToAdd = {
@@ -419,25 +373,40 @@ class AccountService {
                 AddressType: addressType
             };
 
-            const addressId = this.customerAddressDao.create(addressToAdd);
-            if (!addressId) {
+            let addressId;
+
+            try {
+                addressId = this.customerAddressDao.create(addressToAdd);
+            }
+            catch (error: any) {
                 response.setStatus(response.INTERNAL_SERVER_ERROR);
-                return { error: "Failed to create address" };
+                return utils.createErrorResponse(
+                    response.INTERNAL_SERVER_ERROR,
+                    'Something went wrong',
+                    `Failed to create address: ${error.message}`
+                );
             }
 
             const updatedAddress = this.customerAddressDao.findById(addressId);
             if (!updatedAddress) {
                 response.setStatus(response.NOT_FOUND);
-                return { error: "Address created but not found" };
+                return utils.createErrorResponse(
+                    response.INTERNAL_SERVER_ERROR,
+                    'Something went wrong',
+                    'Address created but not found'
+                );
             }
 
             response.setStatus(response.CREATED);
             return { success: true, address: updatedAddress };
 
         } catch (error: any) {
-            console.error("Unexpected error while adding address:", error);
             response.setStatus(response.INTERNAL_SERVER_ERROR);
-            return { error: "Internal Server Error" };
+            return utils.createErrorResponse(
+                response.INTERNAL_SERVER_ERROR,
+                'Something went wrong',
+                error.message ?? error
+            );
         }
     }
 
@@ -445,51 +414,44 @@ class AccountService {
     public updateAddress(body: UpdateAddress, ctx: any) {
         const addressId = ctx.pathParameters.id;
         const userIdentifier = user.getName();
+
         try {
-            const countryId = utils.countryToId(body.country);
+            const countryId = utils.getCountryId(body.country);
 
             if (!countryId) {
                 response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
                     response.BAD_REQUEST,
-                    "Invalid country",
+                    'Something went wrong',
                     `Country "${body.country}" is not recognized`
                 );
             }
 
-            let cityId = utils.cityToId(body.city);
+            let cityId = utils.getCityId(body.city);
 
             if (cityId === undefined) {
                 cityId = this.cityDao.create({ Name: body.city, Country: countryId });
-                if (!cityId) {
-                    response.setStatus(response.INTERNAL_SERVER_ERROR);
-                    return utils.createErrorResponse(
-                        response.INTERNAL_SERVER_ERROR,
-                        "City creation failed",
-                        `Failed to create city "${body.city}"`
-                    );
-                }
             }
 
-            const customerFromAddress = utils.getCustomerFromAddress(addressId);
+            const customerFromAddress = utils.getCustomerByAddress(addressId);
 
             if (!customerFromAddress) {
-                response.setStatus(response.NOT_FOUND);
+                response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
-                    response.NOT_FOUND,
-                    "Address not found",
+                    response.BAD_REQUEST,
+                    'Something went wrong',
                     `No address found with id ${addressId}`
                 );
             }
 
-            const loggedCustomer = utils.mapCustomer(userIdentifier);
+            const loggedCustomer = utils.getCustomerByIdentifier(userIdentifier);
 
             if (customerFromAddress !== loggedCustomer) {
-                response.setStatus(response.FORBIDDEN);
+                response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
-                    response.FORBIDDEN,
-                    "Forbidden",
-                    "You are not allowed to update this address"
+                    response.BAD_REQUEST,
+                    'Something went wrong',
+                    'Attempt to update another user address'
                 );
             }
 
@@ -508,39 +470,33 @@ class AccountService {
             };
 
 
-            try {
-                this.customerAddressDao.update(addressToUpdate);
+            this.customerAddressDao.update(addressToUpdate);
+            const updatedAddress = this.customerAddressDao.findById(addressId);
 
-                const updatedAddress = this.customerAddressDao.findById(addressId);
-                response.setStatus(response.OK); return { success: true, address: updatedAddress };
-            }
-            catch (error) {
-                console.error("Failed to update account:", error);
-                response.setStatus(response.INTERNAL_SERVER_ERROR);
-                return { error: "Internal Server Error" };
-            }
+            response.setStatus(response.OK); return { success: true, address: updatedAddress };
         }
-        catch (error) {
-            console.error("Failed to update address:", error);
+        catch (error: any) {
             response.setStatus(response.INTERNAL_SERVER_ERROR);
             return utils.createErrorResponse(
                 response.INTERNAL_SERVER_ERROR,
-                "Internal Server Error",
-                "An unexpected error occurred while updating the account"
+                'Something went wrong',
+                error.message ?? error
             );
         }
     }
 
     @Post("/account/details")
     public updateAccount(body: UpdateAccount) {
+        const userIdentifier = user.getName();
+
         try {
-            const loggedCustomer = utils.mapCustomer(user.getName());
+            const loggedCustomer = utils.getCustomerByIdentifier(userIdentifier);
 
             if (!loggedCustomer) {
-                response.setStatus(response.NOT_FOUND);
+                response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
-                    response.NOT_FOUND,
-                    "Customer not found",
+                    response.BAD_REQUEST,
+                    'Something went wrong',
                     `No customer found for user "${userIdentifier}"`
                 );
             }
@@ -548,10 +504,10 @@ class AccountService {
             const customerEmail = utils.getCustomerEmail(loggedCustomer);
 
             if (!customerEmail) {
-                response.setStatus(response.INTERNAL_SERVER_ERROR);
+                response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
-                    response.INTERNAL_SERVER_ERROR,
-                    "Email retrieval failed",
+                    response.BAD_REQUEST,
+                    'Something went wrong',
                     `Could not retrieve email for customer "${loggedCustomer}"`
                 );
             }
@@ -565,44 +521,18 @@ class AccountService {
                 Email: customerEmail
             };
 
-            try {
-                this.customerDao.update(accountToUpdate);
+            this.customerDao.update(accountToUpdate);
+            const updatedAccount = this.customerDao.findById(loggedCustomer);
 
-                const updatedAccount = this.customerDao.findById(loggedCustomer);
-
-                response.setStatus(response.OK);
-                return { success: true, data: updatedAccount };
-            } catch (error) {
-                console.error("Failed to update account:", error);
-                response.setStatus(response.INTERNAL_SERVER_ERROR);
-                return { error: "Internal Server Error" };
-            }
-        } catch (error) {
-            console.error("Failed to update account:", error);
+            response.setStatus(response.OK);
+            return { success: true, data: updatedAccount };
+        } catch (error: any) {
             response.setStatus(response.INTERNAL_SERVER_ERROR);
             return utils.createErrorResponse(
                 response.INTERNAL_SERVER_ERROR,
-                "Internal Server Error",
-                "An unexpected error occurred while updating the account"
+                'Something went wrong',
+                error.message ?? error
             );
         }
     }
-}
-
-function getSalesOrderItems(salesorderId: number) {
-
-    const salesOrderItemsQuery = sql.getDialect()
-        .select()
-        .column('SALESORDERITEM_ID')
-        .column('SALESORDERITEM_QUANTITY')
-        .from('CODBEX_SALESORDERITEM')
-        .where('SALESORDERITEM_SALESORDER = ?')
-        .build();
-
-    const salesOrderItemResult = query.execute(salesOrderItemsQuery, [salesorderId]);
-
-    return salesOrderItemResult.map(item => ({
-        productId: item.SALESORDERITEM_ID,
-        quantity: item.SALESORDERITEM_QUANTITY
-    }));
 }
