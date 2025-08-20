@@ -7,6 +7,64 @@ import { Money, ErrorResponse, ProductResponse } from './types/Types';
 @Controller
 class ProductService {
 
+    @Get("products/search/:text")
+    public productsSearch(_: any, ctx: any) {
+
+        const searchText = ctx.pathParameters.text;
+        try {
+            const productSearchQuery = sql.getDialect()
+                .select()
+                .column('PRODUCT_ID')
+                .column('PRODUCT_TITLE')
+                .column('PRODUCT_PRICE')
+                .column('PRODUCT_CURRENCY')
+                .from('CODBEX_PRODUCT')
+                .where('UPPER(PRODUCT_TITLE) LIKE UPPER(?) OR UPPER(PRODUCT_DESCRIPTION) LIKE UPPER(?)')
+                .limit(20)
+                .build();
+
+            const products = query.execute(productSearchQuery, ["%" + searchText + "%", "%" + searchText + "%"]);
+
+            if (!products || products.length === 0) {
+                return [];
+            }
+
+            const productIds = products.map(p => p.PRODUCT_ID);
+            const imageMap = productUtils.getProductsImages(productIds);
+            const currencyMap = productUtils.mapProductIdToCurrencyCode(products);
+
+            const productsResponse = products.map(p => {
+                const imageData = imageMap.get(p.PRODUCT_ID) ?? { featuredImage: null, images: [] };
+                const currencyCode = currencyMap.get(p.PRODUCT_ID) ?? 'UNKNOWN';
+                const productCampaign = productUtils.getCampaign(p.PRODUCT_ID);
+
+                return {
+                    id: String(p.PRODUCT_ID),
+                    title: p.PRODUCT_TITLE,
+                    price: {
+                        amount: productCampaign ? productCampaign.newPrice : p.PRODUCT_PRICE,
+                        currency: currencyCode,
+                    } as Money,
+                    oldPrice: productCampaign
+                        ? { amount: productCampaign.oldPrice, currency: currencyCode } as Money
+                        : null,
+                    featuredImage: imageData.featuredImage
+                };
+            });
+
+            return productsResponse;
+
+        } catch (error: any) {
+            response.setStatus(response.INTERNAL_SERVER_ERROR);
+            return utils.createErrorResponse(
+                response.INTERNAL_SERVER_ERROR,
+                'Something went wrong',
+                error
+            );
+        }
+    }
+
+
     @Get("/products")
     public productsData(): ProductResponse[] | ErrorResponse {
         try {
