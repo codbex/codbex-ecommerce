@@ -175,7 +175,7 @@ class AccountService {
                 return {
                     id: String(row.SALESORDER_ID),
                     creationDate: new Date(row.SALESORDER_DATE).toISOString(),
-                    status,
+                    status: status,
                     totalAmount: {
                         amount: row.SALESORDER_TOTAL,
                         currency: currencyCode

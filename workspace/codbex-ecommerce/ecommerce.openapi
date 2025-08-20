@@ -4,19 +4,35 @@ info:
   description: OpenAPI for codbex-ecommerce
   version: 1.0.0
 servers:
-  - url: /services/ts/codbex-ecommerce/api/ProductService.ts
-tags:
-  - name: Product
-    description: Product
-  - name: Category
-    description: Product category
-  - name: Brand
-    description: Product Manufacturer
+  - url: /services/ts/codbex-ecommerce/api/AccountService.ts
+  - url: /services/ts/codbex-ecommerce/api/ProductService.ts/
+  - url: /services/ts/codbex-ecommerce/api/GeneralContentService.ts/
 paths:
-    /account/addresses:
+  /content/footer:
     get:
       tags:
-        - AccountAddresses
+        - GeneralContentService
+      summary: Get footer data
+      description: Returns footer JSON data from the server.
+      responses:
+        '200':
+          description: Successful response with footer data
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /account/addresses:
+    get:
+      tags:
+        - AccountService
       summary: List logged customer account addresses
       description: Returns account addresses
       responses:
@@ -34,277 +50,411 @@ paths:
              application/json:
                 schema:
                   $ref: '#/components/schemas/Error'
-        '404':
-          description: Account not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
         '500':
           description: Internal Server Error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-    /account/details:
+  /account/orders:
       get:
-      tags:
-        - AccountDetails
-      summary: List logged customer account details
-      description: Returns account details
-      responses:
-        '200':
-          description: Successful response with account details
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/AccountDetails'
-        '400':
-           description: Invalid account
-           content:
-             application/json:
+        tags:
+          - AccountService
+        summary: List logged customer Sales Orders
+        description: Returns sales orders filtered by customer
+        responses:
+          '200':
+            description: Successful response with filtered sales orders
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/SalesOrder'
+          '400':
+             description: Invalid customer
+             content:
+               application/json:
+                  schema:
+                    $ref: '#/components/schemas/Error'
+          '404':
+            description: Customer not found
+            content:
+              application/json:
                 schema:
                   $ref: '#/components/schemas/Error'
-        '404':
-          description: Account not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    /account/orders:
-      get:
-      tags:
-        - SalesOrder
-      summary: List logged customer Sales Orders
-      description: Returns sales orders filtered by customer
-      responses:
-        '200':
-          description: Successful response with filtered sales orders
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SalesOrder'
-        '400':
-           description: Invalid customer
-           content:
-             application/json:
+          '500':
+            description: Internal Server Error
+            content:
+               application/json:
                 schema:
                   $ref: '#/components/schemas/Error'
-        '404':
-          description: Customer not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    /productsByCategory/{categoryId}:
-      get:
+  /account/orders/{id}:
+    get:
       tags:
-        - Product
-      summary: List products by category
-      description: Returns products filtered by a given category ID, including pricing, availability, and images.
+        - AccountService
+      summary: Get details of a specific order
+      description: Returns detailed information about a specific order for the logged-in customer.
       parameters:
-        - in: path
-          name: categoryId
+        - name: id
+          in: path
           required: true
-          description: The ID of the category to filter products by
+          description: The ID of the order
           schema:
             type: string
       responses:
         '200':
-          description: Successful response with filtered products
+          description: Successful response with order details
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/ProductSummary'
+                $ref: '#/components/schemas/OrderDetails'
         '400':
-           description: Invalid category ID format
-           content:
-             application/json:
+          description: Bad request or unauthorized access
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /account/address:
+    post:
+      tags:
+        - AccountService
+      summary: Add a new customer address
+      description: Creates a new address for the logged-in customer.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddAddress'
+      responses:
+        '201':
+          description: Address created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  address:
+                    $ref: '#/components/schemas/Address'
+        '400':
+          description: Invalid request (missing fields, invalid type, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /productsByCategory/{categoryId}:
+      get:
+        tags:
+          - ProductService
+        summary: List products by category
+        description: Returns products filtered by a given category ID, including pricing, availability, and images.
+        parameters:
+          - in: path
+            name: categoryId
+            required: true
+            description: The ID of the category to filter products by
+            schema:
+              type: string
+        responses:
+          '200':
+            description: Successful response with filtered products
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ProductSummary'
+          '400':
+            description: Invalid category ID format
+            content:
+               application/json:
+                  schema:
+                    $ref: '#/components/schemas/Error'
+          '500':
+            description: Internal Server Error
+            content:
+              application/json:
                 schema:
                   $ref: '#/components/schemas/Error'
-        '404':
-          description: Category not found
+  /account/details:
+    post:
+      tags:
+        - AccountService
+      summary: Update logged-in customer account details
+      description: Updates the customer’s personal information (first name, last name, phone number). Email is retrieved from the system and not updated by the request.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAccount'
+      responses:
+        '200':
+          description: Account updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Account'
+        '400':
+          description: Invalid request (e.g., customer not found, email not retrievable)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
         '500':
-          description: Internal Server Error
+          description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-    /products:
-      get:
+  /account/address/{id}:
+    put:
       tags:
-        - Product
-      summary: List products
-      description: Returns a list of up to 30 products, with pricing, availability, and images.
+        - AccountService
+      summary: Update an existing customer address
+      description: Updates a customer address if it belongs to the logged-in customer.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The ID of the address to update
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAddress'
       responses:
         '200':
-          description: Successful response
+          description: Address updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  address:
+                    $ref: '#/components/schemas/Address'
+        '400':
+          description: Invalid request (e.g., country not recognized, not owner of address, address not found)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /products:
+      get:
+        tags:
+          - ProductService
+        summary: List products
+        description: Returns a list of up to 30 products, with pricing, availability, and images.
+        responses:
+          '200':
+            description: Successful response
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ProductSummary'
+          '500':
+            description: Internal Server Error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+  /products/search/{text}:
+    get:
+      tags:
+        - ProductService
+      summary: Search products
+      description: Search products by title or description. Limited to 20 results.
+      parameters:
+        - name: text
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Search text (matches against product title and description)
+          example: "lipstick"
+      responses:
+        '200':
+          description: List of matching products
           content:
             application/json:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/ProductSummary'
+                  $ref: '#/components/schemas/ProductSearchResult'
         '500':
-          description: Internal Server Error
+          description: Internal server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
 
-    /product/{productId}:
+  /product/{productId}:
       get:
-      tags:
-        - Product
-      summary: Get product by ID
-      description: Returns detailed product data for a given product ID.
-      parameters:
-        - in: path
-          name: productId
-          required: true
-          description: The ID of the product to fetch
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProductDetail'
-        '404':
-          description: Product not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    /brands:
+        tags:
+          - ProductService
+        summary: Get product by ID
+        description: Returns detailed product data for a given product ID.
+        parameters:
+          - in: path
+            name: productId
+            required: true
+            description: The ID of the product to fetch
+            schema:
+              type: string
+        responses:
+          '200':
+            description: Successful response
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ProductDetail'
+          '404':
+            description: Product not found
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+          '500':
+            description: Internal Server Error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+  /brands:
       get:
-      tags:
-        - Brand
-      summary: List all brands
-      description: Returns a list of all product manufacturers (brands).
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Brand'
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    /countries:
+        tags:
+          - GeneralContentService
+        summary: List all brands
+        description: Returns a list of all product manufacturers (brands).
+        responses:
+          '200':
+            description: Successful response
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Brand'
+          '400':
+            description: Bad Request
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+          '403':
+            description: Forbidden
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+          '500':
+            description: Internal Server Error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+  /countries:
       get:
-      tags:
-        - Country
-      summary: List all countries
-      description: Returns a list of all countries.
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Country'
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-    /categories:
+        tags:
+          - GeneralContentService
+        summary: List all countries
+        description: Returns a list of all countries.
+        responses:
+          '200':
+            description: Successful response
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Country'
+          '400':
+            description: Bad Request
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+          '403':
+            description: Forbidden
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+          '500':
+            description: Internal Server Error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+  /categories:
       get:
-      tags:
-        - Category
-      summary: List all product categories
-      description: Returns a list of product categories, including the count of products in each.
-      responses:
-        '200':
-          description: Successful response
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Category'
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+        tags:
+          - GeneralContentService
+        summary: List all product categories
+        description: Returns a list of product categories, including the count of products in each.
+        responses:
+          '200':
+            description: Successful response
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Category'
+          '400':
+            description: Bad Request
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+          '403':
+            description: Forbidden
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+          '500':
+            description: Internal Server Error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
 components:
   schemas:
     Category:
@@ -316,6 +466,9 @@ components:
         title:
           type: string
           example: "Skincare"
+        image:
+          type: string
+          example: "https://site.com/"
         productCount:
           type: integer
           example: 25
@@ -346,14 +499,27 @@ components:
         title:
           type: string
           example: "Vitamin C Serum"
+        sku:
+          type: string
+          example: "SKU001"
         shortDescription:
           type: string
           example: "Brightening serum for glowing skin"
         price:
           $ref: '#/components/schemas/Money'
+        oldPrice:
+          $ref: '#/components/schemas/Money'
+        discountPrice:
+          $ref: '#/components/schemas/Money'
         category:
           type: string
           example: "Skincare"
+        brand:
+          type: string
+          example: "1"
+        discountPercenatge:
+          type: number
+          example: 1
         availableForSale:
           type: boolean
           example: true
@@ -371,9 +537,6 @@ components:
         - $ref: '#/components/schemas/ProductSummary'
         - type: object
           properties:
-            brand:
-              type: string
-              example: "The Ordinary"
             description:
               type: string
               example: "A high-potency vitamin C serum with 20% concentration."
@@ -390,6 +553,41 @@ components:
                     value:
                       type: string
                       example: "30ml"
+    ProductSearchResult:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "PROD123"
+        title:
+          type: string
+          example: "Red Matte Lipstick"
+        price:
+          $ref: '#/components/schemas/Money'
+        oldPrice:
+          $ref: '#/components/schemas/Money'
+          nullable: true
+        featuredImage:
+          type: string
+          nullable: true
+          description: URL of the featured product image
+          example: "https://example.com/images/prod123.jpg"
+
+    UpdateAccount:
+      type: object
+      required:
+        - firstName
+        - lastName
+      properties:
+        firstName:
+          type: string
+          example: "Jane"
+        lastName:
+          type: string
+          example: "Doe"
+        phoneNumber:
+          type: string
+          example: "+1234567890"
     AccountDetails:
       type: object
       properties:
@@ -415,7 +613,108 @@ components:
           format: date-time
           example: "2025-08-11T12:34:56Z"
           description: "Account creation date in ISO 8601 format"
-      ShippingAddress:
+    Account:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique customer identifier
+          example: "CUST123"
+        firstName:
+          type: string
+          example: "Jane"
+        lastName:
+          type: string
+          example: "Doe"
+        name:
+          type: string
+          example: "Jane Doe"
+        phone:
+          type: string
+          example: "+1234567890"
+        email:
+          type: string
+          format: email
+          example: "jane.doe@example.com"
+
+    UpdateAddress:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - country
+        - city
+      properties:
+        firstName:
+          type: string
+          example: "Jane"
+        lastName:
+          type: string
+          example: "Doe"
+        email:
+          type: string
+          format: email
+          example: "jane.doe@example.com"
+        phoneNumber:
+          type: string
+          example: "+1234567890"
+        country:
+          type: string
+          example: "Germany"
+        city:
+          type: string
+          example: "Berlin"
+        addressLine1:
+          type: string
+          example: "456 Market St"
+        addressLine2:
+          type: string
+          example: "Suite 10"
+        postalCode:
+          type: string
+          example: "10115"
+    AddAddress:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - addressType
+        - country
+        - city
+      properties:
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Doe"
+        email:
+          type: string
+          format: email
+          example: "john.doe@example.com"
+        phoneNumber:
+          type: string
+          example: "+1234567890"
+        addressType:
+          type: string
+          description: "Type of address (e.g., Shipping, Billing)"
+          example: "Shipping"
+        country:
+          type: string
+          example: "USA"
+        city:
+          type: string
+          example: "New York"
+        addressLine1:
+          type: string
+          example: "123 Main St"
+        addressLine2:
+          type: string
+          example: "Apt 4B"
+        postalCode:
+          type: string
+          example: "10001"
+    ShippingAddress:
        type: object
        properties:
         id:
@@ -433,6 +732,10 @@ components:
         country:
           type: string
           example: "USA"
+          description: "Country name"
+        countryName:
+          type: STRING
+          example: "Bulgaria"
           description: "Country name"
         addressLine1:
           type: string
@@ -459,7 +762,11 @@ components:
           format: email
           example: "john.doe@example.com"
           description: "Email associated with the address"
-      BillingAddress:
+        addressType:
+          type: number
+          example: 1
+          description: "Address type"
+    BillingAddress:
        type: object
        properties:
         id:
@@ -477,6 +784,10 @@ components:
         country:
           type: string
           example: "USA"
+          description: "Country code"
+        countryName:
+          type: STRING
+          example: "Bulgaria"
           description: "Country name"
         addressLine1:
           type: string
@@ -503,6 +814,10 @@ components:
           format: email
           example: "john.doe@example.com"
           description: "Email associated with the address"
+        addressType:
+          type: number
+          example: 1
+          description: "Address type"
     AccountAddresses:
       type: object
       properties:
@@ -512,6 +827,51 @@ components:
         billingAddress:
           $ref: '#/components/schemas/BillingAddress'
           description: "Billing address details"
+    OrderDetails:
+      type: object
+      properties:
+        orderId:
+          type: object
+          properties:
+            id:
+              type: string
+            paymentMethod:
+              type: string
+            shippingType:
+              type: string
+            shippingAddress:
+              $ref: '#/components/schemas/ShippingAddress'
+            billingAddress:
+              $ref: '#/components/schemas/BillingAddress'
+            creationDate:
+              type: string
+              format: date-time
+            totalAmount:
+              type: object
+              properties:
+                amount:
+                  type: number
+                currency:
+                  type: string
+            status:
+              type: string
+            notes:
+              type: string
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/OrderItem'
+    OrderItem:
+      type: object
+      properties:
+        productId:
+          type: string
+          description: Unique identifier of the product in the sales order
+          example: "101"
+        quantity:
+          type: integer
+          description: Quantity of the product in the order
+          example: 2                 
     SalesOrder:
       type: object
       properties:

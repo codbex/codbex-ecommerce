@@ -21,7 +21,7 @@ export function mapAddresses(allAddresses): { shippingAddress: Address[]; billin
             postalCode: row.CUSTOMERADDRESS_POSTALCODE,
             phoneNumber: row.CUSTOMERADDRESS_PHONE,
             email: row.CUSTOMERADDRESS_EMAIL,
-            addressType: row.CUSTOMERADDRESS_CUSTOMERADDRESSTYPE
+            addressType: String(row.CUSTOMERADDRESS_CUSTOMERADDRESSTYPE)
         };
     });
 
@@ -52,7 +52,7 @@ export function getSalesOrderItems(salesorderId: number) {
     const salesOrderItemResult = query.execute(salesOrderItemsQuery, [salesorderId]);
 
     return salesOrderItemResult.map(item => ({
-        productId: item.SALESORDERITEM_ID,
+        productId: String(item.SALESORDERITEM_ID),
         quantity: item.SALESORDERITEM_QUANTITY
     }));
 }

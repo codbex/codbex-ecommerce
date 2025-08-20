@@ -27,9 +27,9 @@ export function getProductsResponse(productIds: any[], products: any[]) {
             oldPrice: productCampaign
                 ? { amount: productCampaign.oldPrice, currency: currencyCode } as Money
                 : null,
-            brand: p.PRODUCT_MANUFACTURER,
+            brand: String(p.PRODUCT_MANUFACTURER),
             discountPercentage: productCampaign?.discountPercentage ?? null,
-            category: p.PRODUCT_CATEGORY,
+            category: String(p.PRODUCT_CATEGORY),
             availableForSale: isAvailable,
             featuredImage: imageData.featuredImage,
             images: imageData.images
