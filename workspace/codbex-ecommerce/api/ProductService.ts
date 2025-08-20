@@ -13,6 +13,7 @@ class ProductService {
             const productQuery = sql.getDialect()
                 .select()
                 .column('PRODUCT_ID')
+                .column('PRODUCT_SKU')
                 .column('PRODUCT_TITLE')
                 .column('PRODUCT_CATEGORY')
                 .column('PRODUCT_MANUFACTURER')
@@ -67,6 +68,7 @@ class ProductService {
                 .select()
                 .column('PRODUCT_ID')
                 .column('PRODUCT_TITLE')
+                .column('PRODUCT_SKU')
                 .column('PRODUCT_CATEGORY')
                 .column('PRODUCT_MANUFACTURER')
                 .column('PRODUCT_SHORTDESCRIPTION')
@@ -138,6 +140,7 @@ class ProductService {
 
             return {
                 id: String(productsResult.PRODUCT_ID),
+                sku: productsResult.PRODUCT_SKU,
                 title: productsResult.PRODUCT_TITLE,
                 category: String(productsResult.PRODUCT_CATEGORY),
                 brand: String(productsResult.PRODUCT_MANUFACTURER),
@@ -187,6 +190,7 @@ class ProductService {
                 .select()
                 .column('PRODUCT_ID')
                 .column('PRODUCT_TITLE')
+                .column('PRODUCT_SKU')
                 .column('PRODUCT_PRICE')
                 .column('PRODUCT_SHORTDESCRIPTION')
                 .column('PRODUCT_CURRENCY')

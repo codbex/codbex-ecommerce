@@ -14,6 +14,7 @@ export function getProductsResponse(productIds: any[], products: any[]) {
 
         return {
             id: String(p.PRODUCT_ID),
+            sku: p.PRODUCT_SKU,
             title: p.PRODUCT_TITLE,
             shortDescription: p.PRODUCT_SHORTDESCRIPTION,
             price: {
