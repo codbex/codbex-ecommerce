@@ -10,14 +10,14 @@ export function mapAddresses(allAddresses): { shippingAddress: Address[]; billin
         const city = utils.getCityName(row.CUSTOMERADDRESS_CITY);
 
         return {
-            id: row.CUSTOMERADDRESS_ID,
+            id: String(row.CUSTOMERADDRESS_ID),
             firstName: row.CUSTOMERADDRESS_FIRSTNAME,
             lastName: row.CUSTOMERADDRESS_LASTNAME,
             country: countryCode,
             countryName: countryName,
             addressLine1: row.CUSTOMERADDRESS_ADRESSLINE1,
             addressLine2: row.CUSTOMERADDRESS_ADDRESSLINE2,
-            city,
+            city: city,
             postalCode: row.CUSTOMERADDRESS_POSTALCODE,
             phoneNumber: row.CUSTOMERADDRESS_PHONE,
             email: row.CUSTOMERADDRESS_EMAIL,

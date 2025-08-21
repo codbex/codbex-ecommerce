@@ -6,6 +6,17 @@ import { Category, Brand, ErrorResponse, CountryResponse } from './types/Types';
 @Controller
 class GeneralContentService {
 
+    @Get("/content/menu")
+    public menuData() {
+
+        const protocol = request.getScheme() + "://";
+        const domain = request.getHeader("Host")
+
+        const clientResponse = client.get(`${protocol}${domain}/public/js/documents/api/documents.js/preview?path=/hayat-documents/menu.json`);
+
+        return JSON.parse(clientResponse.text);
+    }
+
     @Get("/content/footer")
     public footerData() {
 
