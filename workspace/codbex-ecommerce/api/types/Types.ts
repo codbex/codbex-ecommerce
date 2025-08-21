@@ -1,28 +1,3 @@
-export interface Money {
-    amount: number;
-    currency: string;
-};
-
-export interface CountryResponse {
-    name: string;
-    code: string;
-}
-
-export interface ProductResponse {
-    id: string;
-    title: string;
-    shortDescription: string;
-    price: Money;
-    discountPrice: Money | null;
-    oldPrice: Money | null;
-    brand: string;
-    discountPercentage: number | null;
-    category: string;
-    availableForSale: boolean;
-    featuredImage: string | null;
-    images: string[];
-}
-
 export interface ErrorResponse {
     errorType: string;
     errorMessage: string;
@@ -32,6 +7,16 @@ export interface ErrorCause {
     errorType?: string;
     errorMessage: string;
     field?: string;
+}
+
+export interface Money {
+    amount: number;
+    currency: string;
+};
+
+export interface CountryResponse {
+    name: string;
+    code: string;
 }
 
 export interface Category {
@@ -52,6 +37,14 @@ export interface SalesOrder {
     status: string;
     totalAmount: Money;
 };
+
+export interface AddAccount {
+    userId: string;
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    email: string;
+}
 
 export interface AccountDetails {
     firstName: string;
@@ -120,4 +113,19 @@ export interface Customer {
     Phone: string;
     Email: string;
     CreationDate?: string;
+}
+
+export interface ProductResponse {
+    id: string;
+    title: string;
+    shortDescription: string;
+    price: Money;
+    discountPrice: Money | null;
+    oldPrice: Money | null;
+    brand: string;
+    discountPercentage: number | null;
+    category: string;
+    availableForSale: boolean;
+    featuredImage: string | null;
+    images: string[];
 }

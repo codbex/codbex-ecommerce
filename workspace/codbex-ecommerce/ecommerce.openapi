@@ -8,6 +8,56 @@ servers:
   - url: /services/ts/codbex-ecommerce/api/ProductService.ts/
   - url: /services/ts/codbex-ecommerce/api/GeneralContentService.ts/
 paths:
+  /account/register:
+    post:
+      summary: Register a new customer account
+      description: Creates a new customer account if the user ID does not already exist.
+      operationId: registerUser
+      tags:
+        - AccountService
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddAccount'
+      responses:
+        "201":
+          description: Customer successfully created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  firstName:
+                    type: string
+                  lastName:
+                    type: string
+                  phoneNumber:
+                    type: string
+                  email:
+                    type: string
+                  creationDate:
+                    type: string
+                    format: date-time
+        "400":
+          description: Bad request – missing required fields/ cannot create customer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        "409":
+          description: Conflict – customer already exists or cannot be created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /content/menu:
     get:
       tags:
@@ -512,6 +562,31 @@ components:
         code:
           type: string
           example: "BUL"
+    AddAccount:
+      type: object
+      required:
+        - firstName
+        - lastName
+        - phoneNumber
+        - email
+        - userId
+      properties:
+        firstName:
+          type: string
+          example: John
+        lastName:
+          type: string
+          example: Doe
+        phoneNumber:
+          type: string
+          example: "+1234567890"
+        email:
+          type: string
+          format: email
+          example: john.doe@example.com
+        userId:
+          type: string
+          example: user_12345
     UpdateAccount:
       type: object
       required:
@@ -904,12 +979,15 @@ components:
           description: URL of the featured product image
           example: "https://example.com/images/prod123.jpg"
     Error:
-      type: object
-      properties:
-        message:
-          type: string
-          example: Error message
-        code:
-          type: integer
-          example: The error code 
+     type: object
+     properties:
+       status:
+         type: integer
+         example: 400
+       title:
+         type: string
+         example: Something went wrong
+       detail:
+         type: string
+         example: Missing required fields
 
