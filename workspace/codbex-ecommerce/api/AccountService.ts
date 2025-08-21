@@ -4,7 +4,7 @@ import * as utils from './utils/UtilsService';
 import * as accountUtils from './utils/AccountUtilsService';
 import { user } from 'sdk/security';
 import {
-    AddressesResponse, ErrorResponse, AccountDetails,
+    AddressesResponse, ErrorResponse, AccountDetails, AddAccount,
     SalesOrder, AddAddress, UpdateAddress, UpdateAccount, Money
 } from './types/Types';
 
@@ -23,6 +23,80 @@ class AccountService {
         this.customerAddressDao = new CustomerAddressDao();
         this.customerDao = new CustomerDao();
         this.cityDao = new CityDao();
+    }
+
+    @Post("/account/register")
+    public registerUser(body: AddAccount) {
+        try {
+
+            if (!body || !body.firstName || !body.lastName || !body.phoneNumber || !body.email || !body.userId) {
+                response.setStatus(response.BAD_REQUEST);
+                return utils.createErrorResponse(
+                    response.BAD_REQUEST,
+                    'Something went wrong',
+                    'Missing required fields'
+                );
+            }
+
+            const userWithSameId = this.customerDao.findAll({
+                $filter: {
+                    equals: {
+                        Identifier: body.userId
+                    }
+                }
+            });
+
+            if (userWithSameId.length !== 0) {
+                response.setStatus(response.CONFLICT);
+                return utils.createErrorResponse(
+                    response.CONFLICT,
+                    'Something went wrong',
+                    `Customer with id ${body.userId} already exists!`
+                );
+            }
+
+            const customerToAdd = {
+                FirstName: body.firstName,
+                LastName: body.lastName,
+                Email: body.email,
+                Phone: body.phoneNumber,
+                Identifier: body.userId
+            };
+
+            let customerId;
+
+            try {
+                customerId = this.customerDao.create(customerToAdd);
+            }
+            catch (error: any) {
+                response.setStatus(response.BAD_REQUEST);
+                return utils.createErrorResponse(
+                    response.BAD_REQUEST,
+                    'Something went wrong',
+                    `Cannot create customer: ${error.message}`
+                );
+            }
+
+            const createdCustomer = this.customerDao.findById(customerId);
+
+            response.setStatus(response.CREATED);
+            return {
+                firstName: createdCustomer.FirstName,
+                lastName: createdCustomer.LastName,
+                phoneNumber: createdCustomer.Phone,
+                email: createdCustomer.EmailL,
+                creationDate: createdCustomer.CreatedAt
+            };
+
+        } catch (error: any) {
+            response.setStatus(response.INTERNAL_SERVER_ERROR);
+            return utils.createErrorResponse(
+                response.INTERNAL_SERVER_ERROR,
+                'Something went wrong',
+                error.message ?? error
+            );
+        }
+
     }
 
     @Get("/account/addresses")
