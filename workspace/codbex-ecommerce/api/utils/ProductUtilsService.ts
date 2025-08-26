@@ -39,6 +39,22 @@ export function getProductsResponse(productIds: any[], products: any[]) {
     return productsResponse;
 }
 
+export function productsIdsInCampaign(productIds: number[]): number[] {
+    if (productIds.length === 0) return [];
+
+    const productQuery = sql.getDialect()
+        .select()
+        .column('CAMPAIGNENTRY_PRODUCT')
+        .from('CODBEX_CAMPAIGNENTRY')
+        .where(`CAMPAIGNENTRY_PRODUCT IN (${productIds.map(() => '?').join(', ')})`)
+        .build();
+
+    const rows = query.execute(productQuery, productIds);
+
+    return rows.map((row: any) => row.CAMPAIGNENTRY_PRODUCT);
+}
+
+
 export function getCampaign(productId: number) {
 
     const productQuery = sql.getDialect()
