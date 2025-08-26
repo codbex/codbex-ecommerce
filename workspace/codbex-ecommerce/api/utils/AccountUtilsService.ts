@@ -5,6 +5,7 @@ import { Address } from '../types/Types'
 export function mapAddresses(allAddresses): { shippingAddress: Address[]; billingAddress: Address[]; } {
 
     const mappedAddresses = allAddresses.map(row => {
+
         const countryCode = utils.getCountryCode(row.CUSTOMERADDRESS_COUNTRY);
         const countryName = utils.getCountryName(row.CUSTOMERADDRESS_COUNTRY);
         const city = utils.getCityName(row.CUSTOMERADDRESS_CITY);
@@ -26,11 +27,11 @@ export function mapAddresses(allAddresses): { shippingAddress: Address[]; billin
     });
 
     const shippingAddress: Address[] = mappedAddresses
-        .filter(a => a.addressType === 1)
+        .filter(a => a.addressType === "1")
         .map(({ addressType, ...rest }) => rest);
 
     const billingAddress: Address[] = mappedAddresses
-        .filter(a => a.addressType === 2)
+        .filter(a => a.addressType === "2")
         .map(({ addressType, ...rest }) => rest);
 
     return {
