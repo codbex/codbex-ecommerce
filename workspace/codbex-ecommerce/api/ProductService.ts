@@ -64,6 +64,48 @@ class ProductService {
         }
     }
 
+    @Get("/products/promotions")
+    public productPromotionsData(): ProductResponse[] | ErrorResponse {
+        try {
+            const productQuery = sql.getDialect()
+                .select()
+                .column('PRODUCT_ID')
+                .column('PRODUCT_SKU')
+                .column('PRODUCT_TITLE')
+                .column('PRODUCT_CATEGORY')
+                .column('PRODUCT_MANUFACTURER')
+                .column('PRODUCT_SHORTDESCRIPTION')
+                .column('PRODUCT_PRICE')
+                .column('PRODUCT_CURRENCY')
+                .from('CODBEX_PRODUCT')
+                .build();
+
+            const products = query.execute(productQuery) || [];
+
+            if (products.length === 0) {
+                response.setStatus(response.BAD_REQUEST);
+                return utils.createErrorResponse(
+                    response.BAD_REQUEST,
+                    'Something went wrong',
+                    'No products found'
+                );
+            }
+
+            const productIds = products.map(p => p.PRODUCT_ID);
+            const productsInCampaign = productUtils.productsIdsInCampaign(productIds);
+            const productsResponse = productUtils.getProductsResponse(productsInCampaign, products);
+
+            return productsResponse;
+
+        } catch (error: any) {
+            response.setStatus(response.INTERNAL_SERVER_ERROR);
+            return utils.createErrorResponse(
+                response.INTERNAL_SERVER_ERROR,
+                'Something went wrong',
+                error
+            );
+        }
+    }
 
     @Get("/products")
     public productsData(): ProductResponse[] | ErrorResponse {
