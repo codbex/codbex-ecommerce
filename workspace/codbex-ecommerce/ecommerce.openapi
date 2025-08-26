@@ -428,6 +428,27 @@ paths:
               application/json:
                 schema:
                   $ref: '#/components/schemas/Error'
+  /products/promotions:
+      get:
+        tags:
+          - ProductService
+        summary: List products which are in campaign
+        description: Returns a list of up to 30 products, with pricing, availability, and images.
+        responses:
+          '200':
+            description: Successful response
+            content:
+              application/json:
+                schema:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ProductSummary'
+          '500':
+            description: Internal Server Error
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
   /products/search/{text}:
     get:
       tags:

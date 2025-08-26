@@ -6,7 +6,9 @@ export function getProductsResponse(productIds: any[], products: any[]) {
     const availabilityMap = getProductsAvailability(productIds);
     const currencyMap = mapProductIdToCurrencyCode(products);
 
-    const productsResponse = products.map(p => {
+    const filteredProducts = products.filter(p => productIds.includes(p.PRODUCT_ID));
+
+    const productsResponse = filteredProducts.map(p => {
         const imageData = imageMap.get(p.PRODUCT_ID) ?? { featuredImage: null, images: [] };
         const isAvailable = availabilityMap.get(p.PRODUCT_ID) ?? false;
         const currencyCode = currencyMap.get(p.PRODUCT_ID) ?? 'UNKNOWN';
@@ -42,18 +44,17 @@ export function getProductsResponse(productIds: any[], products: any[]) {
 export function productsIdsInCampaign(productIds: number[]): number[] {
     if (productIds.length === 0) return [];
 
-    const productQuery = sql.getDialect()
-        .select()
-        .column('CAMPAIGNENTRY_PRODUCT')
-        .from('CODBEX_CAMPAIGNENTRY')
-        .where(`CAMPAIGNENTRY_PRODUCT IN (${productIds.map(() => '?').join(', ')})`)
-        .build();
+    const activeProducts: number[] = [];
 
-    const rows = query.execute(productQuery, productIds);
+    for (const productId of productIds) {
+        const campaign = getCampaign(productId);
+        if (campaign) {
+            activeProducts.push(productId);
+        }
+    }
 
-    return rows.map((row: any) => row.CAMPAIGNENTRY_PRODUCT);
+    return activeProducts;
 }
-
 
 export function getCampaign(productId: number) {
 
