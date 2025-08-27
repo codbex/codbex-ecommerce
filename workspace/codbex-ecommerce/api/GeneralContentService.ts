@@ -2,15 +2,19 @@ import { Controller, Get, response, request, client } from "sdk/http";
 import { query, sql } from 'sdk/db';
 import * as utils from './utils/UtilsService';
 import { Category, Brand, ErrorResponse, CountryResponse } from './types/Types';
+
 import { ManufacturerRepository as ManufacturerDao } from "codbex-partners/gen/codbex-partners/dao/Manufacturers/ManufacturerRepository";
+import { CountryRepository as CountryDao } from "codbex-countries/gen/codbex-countries/dao/Settings/CountryRepository";
 
 @Controller
 class GeneralContentService {
 
     private readonly manufacturerDao;
+    private readonly countryDao;
 
     constructor() {
         this.manufacturerDao = new ManufacturerDao();
+        this.countryDao = new CountryDao();
     }
 
     @Get("/content/menu")
@@ -75,15 +79,6 @@ class GeneralContentService {
     @Get("/brands")
     public brandsData(): Brand[] | ErrorResponse {
         try {
-            // const brandsQuery = sql.getDialect()
-            //     .select()
-            //     .column('MANUFACTURER_ID')
-            //     .column('MANUFACTURER_NAME')
-            //     .from('CODBEX_MANUFACTURER')
-            //     .build();
-
-            // const brandsResult = query.execute(brandsQuery) || [];
-
             const brandsResult = this.manufacturerDao.findAll();
 
             if (brandsResult.length === 0) {
@@ -107,14 +102,7 @@ class GeneralContentService {
     @Get("/countries")
     public countriesData(): CountryResponse[] | ErrorResponse {
         try {
-            const countriesQuery = sql.getDialect()
-                .select()
-                .column('COUNTRY_NAME')
-                .column('COUNTRY_CODE3')
-                .from('CODBEX_COUNTRY')
-                .build();
-
-            const countryResult = query.execute(countriesQuery, []) || [];
+            const countryResult = this.countryDao.findAll();
 
             if (countryResult.length === 0) {
                 response.setStatus(response.BAD_REQUEST);
@@ -122,8 +110,8 @@ class GeneralContentService {
             }
 
             const countries = countryResult.map(row => ({
-                name: row.COUNTRY_NAME,
-                code: row.COUNTRY_CODE3
+                name: row.Name,
+                code: row.Code3
             }));
 
             return countries;
