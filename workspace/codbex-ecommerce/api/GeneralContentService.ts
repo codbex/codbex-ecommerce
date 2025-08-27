@@ -2,9 +2,16 @@ import { Controller, Get, response, request, client } from "sdk/http";
 import { query, sql } from 'sdk/db';
 import * as utils from './utils/UtilsService';
 import { Category, Brand, ErrorResponse, CountryResponse } from './types/Types';
+import { ManufacturerRepository as ManufacturerDao } from "codbex-partners/gen/codbex-partners/dao/Manufacturers/ManufacturerRepository";
 
 @Controller
 class GeneralContentService {
+
+    private readonly manufacturerDao;
+
+    constructor() {
+        this.manufacturerDao = new ManufacturerDao();
+    }
 
     @Get("/content/menu")
     public menuData() {
@@ -68,14 +75,16 @@ class GeneralContentService {
     @Get("/brands")
     public brandsData(): Brand[] | ErrorResponse {
         try {
-            const brandsQuery = sql.getDialect()
-                .select()
-                .column('MANUFACTURER_ID')
-                .column('MANUFACTURER_NAME')
-                .from('CODBEX_MANUFACTURER')
-                .build();
+            // const brandsQuery = sql.getDialect()
+            //     .select()
+            //     .column('MANUFACTURER_ID')
+            //     .column('MANUFACTURER_NAME')
+            //     .from('CODBEX_MANUFACTURER')
+            //     .build();
 
-            const brandsResult = query.execute(brandsQuery) || [];
+            // const brandsResult = query.execute(brandsQuery) || [];
+
+            const brandsResult = this.manufacturerDao.findAll();
 
             if (brandsResult.length === 0) {
                 response.setStatus(response.BAD_REQUEST);
@@ -83,8 +92,8 @@ class GeneralContentService {
             }
 
             const allBrands: Brand[] = brandsResult.map(row => ({
-                id: String(row.MANUFACTURER_ID),
-                name: row.MANUFACTURER_NAME
+                id: String(row.Id),
+                name: row.Name
             }));
 
             return allBrands;
