@@ -1,20 +1,26 @@
 import { Controller, Get, response, request, client } from "sdk/http";
-import { query, sql } from 'sdk/db';
 import * as utils from './utils/UtilsService';
 import { Category, Brand, ErrorResponse, CountryResponse } from './types/Types';
 
 import { ManufacturerRepository as ManufacturerDao } from "codbex-partners/gen/codbex-partners/dao/Manufacturers/ManufacturerRepository";
 import { CountryRepository as CountryDao } from "codbex-countries/gen/codbex-countries/dao/Settings/CountryRepository";
+import { ProductCategoryRepository as ProductCategoryDao } from "codbex-products/gen/codbex-products/dao/Settings/ProductCategoryRepository";
+import { ProductRepository as ProductDao } from "codbex-products/gen/codbex-products/dao/Products/ProductRepository";
+
 
 @Controller
 class GeneralContentService {
 
     private readonly manufacturerDao;
     private readonly countryDao;
+    private readonly productCategoryDao;
+    private readonly productDao;
 
     constructor() {
         this.manufacturerDao = new ManufacturerDao();
         this.countryDao = new CountryDao();
+        this.productCategoryDao = new ProductCategoryDao();
+        this.productDao = new ProductDao();
     }
 
     @Get("/content/menu")
@@ -42,31 +48,30 @@ class GeneralContentService {
     @Get("/categories")
     public categoriesData(): Category[] | ErrorResponse {
         try {
-            const categoryQuery = sql.getDialect()
-                .select()
-                .column('PRODUCTCATEGORY_ID')
-                .column('PRODUCTCATEGORY_NAME')
-                .column('PRODUCTCATEGORY_PATH')
-                .column('COUNT(PRODUCT_ID) PRCOUNT')
-                .from('CODBEX_PRODUCTCATEGORY')
-                .leftJoin('CODBEX_PRODUCT', 'PRODUCT_CATEGORY = PRODUCTCATEGORY_ID')
-                .group('PRODUCTCATEGORY_ID')
-                .group('PRODUCTCATEGORY_NAME')
-                .build();
+            const allCategories = this.productCategoryDao.findAll();
 
-            const categoryResult = query.execute(categoryQuery, []) || [];
-
-            if (categoryResult.length === 0) {
+            if (allCategories.length === 0) {
                 response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(response.BAD_REQUEST, 'Something went wrong', 'No categories found');
             }
 
-            const categories: Category[] = categoryResult.map(row => ({
-                id: String(row.PRODUCTCATEGORY_ID),
-                title: row.PRODUCTCATEGORY_NAME,
-                image: row.PRODUCTCATEGORY_PATH,
-                productCount: row.PRCOUNT
-            }));
+            const categories: Category[] = allCategories.map(row => {
+
+                const countOfProducts = this.productDao.findAll({
+                    $filter: {
+                        equals: {
+                            Category: row.Id
+                        }
+                    }
+                }).length;
+
+                return {
+                    id: String(row.Id),
+                    title: row.Name,
+                    image: row.Path,
+                    productCount: countOfProducts
+                };
+            });
 
             return categories;
 
