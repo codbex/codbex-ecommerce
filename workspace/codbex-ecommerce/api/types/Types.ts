@@ -20,9 +20,9 @@ export interface CountryResponse {
 }
 
 export interface Category {
-    id: string;
-    title: string;
-    image: string;
+    id: string | undefined;
+    title: string | undefined;
+    image: string | undefined;
     productCount: number;
 }
 
