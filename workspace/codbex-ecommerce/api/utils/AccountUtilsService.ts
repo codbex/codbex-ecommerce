@@ -6,23 +6,23 @@ export function mapAddresses(allAddresses: any[]): { shippingAddress: Address[];
 
     const mappedAddresses = allAddresses.map(row => {
 
-        const countryCode = utils.getCountryCode(row.CUSTOMERADDRESS_COUNTRY);
-        const countryName = utils.getCountryName(row.CUSTOMERADDRESS_COUNTRY);
-        const city = utils.getCityName(row.CUSTOMERADDRESS_CITY);
+        const countryCode = utils.getCountryCode(row.Country);
+        const countryName = utils.getCountryName(row.Country);
+        const city = utils.getCityName(row.City);
 
         return {
-            id: String(row.CUSTOMERADDRESS_ID),
-            firstName: row.CUSTOMERADDRESS_FIRSTNAME,
-            lastName: row.CUSTOMERADDRESS_LASTNAME,
+            id: String(row.Id),
+            firstName: row.FirstName,
+            lastName: row.LastName,
             country: countryCode,
             countryName: countryName,
-            addressLine1: row.CUSTOMERADDRESS_ADRESSLINE1,
-            addressLine2: row.CUSTOMERADDRESS_ADDRESSLINE2,
+            addressLine1: row.AddressLine1,
+            addressLine2: row.AddressLine2,
             city: city,
-            postalCode: row.CUSTOMERADDRESS_POSTALCODE,
-            phoneNumber: row.CUSTOMERADDRESS_PHONE,
-            email: row.CUSTOMERADDRESS_EMAIL,
-            addressType: String(row.CUSTOMERADDRESS_CUSTOMERADDRESSTYPE)
+            postalCode: row.PostalCode,
+            phoneNumber: row.Phone,
+            email: row.Email,
+            addressType: String(row.AddressType)
         };
     });
 
@@ -55,6 +55,7 @@ export function getSalesOrderItems(salesorderId: number) {
         .select()
         .column('PRODUCT_IMAGE')
         .column('PRODUCT_TITLE')
+        .column('PRODUCT_PRICE')
         .from('CODBEX_PRODUCT')
         .where('PRODUCT_ID = ?')
         .build();
@@ -68,7 +69,8 @@ export function getSalesOrderItems(salesorderId: number) {
             productId: String(item.SALESORDERITEM_ID),
             quantity: item.SALESORDERITEM_QUANTITY,
             title: productRes[0].PRODUCT_TITLE,
-            image: productRes[0].PRODUCT_IMAGE
+            image: productRes[0].PRODUCT_IMAGE,
+            price: productRes[0].PRODUCT_PRICE
         }
     });
 }
