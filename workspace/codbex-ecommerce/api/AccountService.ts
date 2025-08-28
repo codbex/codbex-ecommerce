@@ -346,7 +346,7 @@ class AccountService {
                 .where('SALESORDER_ID = ?')
                 .build();
 
-            const salesOrderResults = query.execute(salesOrderQuery, [loggedCustomer]);
+            const salesOrderResults = query.execute(salesOrderQuery, [orderId]);
 
             if (!salesOrderResults || salesOrderResults.length === 0) {
                 response.setStatus(response.BAD_REQUEST);
