@@ -32,10 +32,10 @@ export interface Brand {
 }
 
 export interface SalesOrder {
-    id: string;
-    creationDate: string;
-    status: string;
-    totalAmount: Money;
+    id: string | undefined;
+    creationDate: string | undefined;
+    status: string | undefined;
+    totalAmount: Money | undefined;
 };
 
 export interface AddAccount {
@@ -47,11 +47,11 @@ export interface AddAccount {
 }
 
 export interface AccountDetails {
-    firstName: string;
-    lastName: string;
-    phoneNumber: string;
-    email: string;
-    creationDate: string;
+    firstName: string | undefined;
+    lastName: string | undefined;
+    phoneNumber: string | undefined;
+    email: string | undefined;
+    creationDate: Date | undefined;
 }
 
 export interface Address {

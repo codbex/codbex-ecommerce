@@ -1,5 +1,4 @@
 import { Controller, Get, Put, Post, response } from "sdk/http";
-import { query, sql } from 'sdk/db';
 import * as utils from './utils/UtilsService';
 import * as accountUtils from './utils/AccountUtilsService';
 import { user } from 'sdk/security';
@@ -11,6 +10,7 @@ import {
 import { CityRepository as CityDao } from "codbex-cities/gen/codbex-cities/dao/Settings/CityRepository";
 import { CustomerAddressRepository as CustomerAddressDao } from "codbex-partners/gen/codbex-partners/dao/Customers/CustomerAddressRepository";
 import { CustomerRepository as CustomerDao } from "codbex-partners/gen/codbex-partners/dao/Customers/CustomerRepository";
+import { SalesOrderRepository as SalesOrderDao } from "codbex-orders/gen/codbex-orders/dao/SalesOrder/SalesOrderRepository";
 
 @Controller
 class AccountService {
@@ -18,11 +18,13 @@ class AccountService {
     private readonly customerAddressDao;
     private readonly customerDao;
     private readonly cityDao;
+    private readonly salesOrderDao;
 
     constructor() {
         this.customerAddressDao = new CustomerAddressDao();
         this.customerDao = new CustomerDao();
         this.cityDao = new CityDao();
+        this.salesOrderDao = new SalesOrderDao();
     }
 
     @Post("/account/register")
@@ -104,7 +106,9 @@ class AccountService {
         try {
             const loggedCustomer = utils.getCustomerByIdentifier(user.getName());
 
-            if (!loggedCustomer) {
+            const customer = this.customerDao.findById(loggedCustomer);
+
+            if (!customer) {
                 response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
                     response.BAD_REQUEST,
@@ -112,36 +116,25 @@ class AccountService {
                     'Customer could not be resolved from session'
                 );
             }
-            const addressQuery = sql.getDialect()
-                .select()
-                .column('CUSTOMERADDRESS_ID')
-                .column('CUSTOMERADDRESS_FIRSTNAME')
-                .column('CUSTOMERADDRESS_LASTNAME')
-                .column('CUSTOMERADDRESS_EMAIL')
-                .column('CUSTOMERADDRESS_PHONE')
-                .column('CUSTOMERADDRESS_ADRESSLINE1')
-                .column('CUSTOMERADDRESS_ADDRESSLINE2')
-                .column('CUSTOMERADDRESS_COUNTRY')
-                .column('CUSTOMERADDRESS_CITY')
-                .column('CUSTOMERADDRESS_POSTALCODE')
-                .column('CUSTOMERADDRESS_CUSTOMER')
-                .column('CUSTOMERADDRESS_CUSTOMERADDRESSTYPE')
-                .from('CODBEX_CUSTOMERADDRESS')
-                .where('CUSTOMERADDRESS_CUSTOMER = ?')
-                .build();
 
-            const allAddresses = query.execute(addressQuery, [loggedCustomer]) || [];
+            const customerAddresses = this.customerAddressDao.findAll({
+                $filter: {
+                    equals: {
+                        Customer: loggedCustomer
+                    }
+                }
+            });
 
-            if (allAddresses.length === 0) {
+            if (customerAddresses.length === 0) {
                 response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
                     response.BAD_REQUEST,
                     'Something went wrong',
-                    'This customer has no saved addresses'
+                    `This customer has no saved addresses ${customerId}`
                 );
             }
 
-            const mappedAddresses = accountUtils.mapAddresses(allAddresses);
+            const mappedAddresses = accountUtils.mapAddresses(customerAddresses);
 
             return mappedAddresses;
 
@@ -160,45 +153,23 @@ class AccountService {
         try {
             const customerId = utils.getCustomerByIdentifier(user.getName());
 
-            if (!customerId) {
+            const customer = this.customerDao.findById(customerId);
+
+            if (!customer) {
                 response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
                     response.BAD_REQUEST,
                     'Something went wrong',
-                    'Could not resolve customer from session'
+                    `Could not resolve customer from session: ${customerId}`
                 );
             }
-
-            const customerQuery = sql.getDialect()
-                .select()
-                .column('CUSTOMER_FIRSTNAME')
-                .column('CUSTOMER_LASTNAME')
-                .column('CUSTOMER_EMAIL')
-                .column('CUSTOMER_PHONE')
-                .column('CUSTOMER_CREATEDAT')
-                .from('CODBEX_CUSTOMER')
-                .where('CUSTOMER_ID = ?')
-                .build();
-
-            const customerResult = query.execute(customerQuery, [customerId]);
-
-            if (customerResult.length === 0) {
-                response.setStatus(response.BAD_REQUEST);
-                return utils.createErrorResponse(
-                    response.BAD_REQUEST,
-                    'Something went wrong',
-                    `No customer found with ID ${customerId}`
-                );
-            }
-
-            const loggedCustomer = customerResult[0];
 
             return {
-                firstName: loggedCustomer.CUSTOMER_FIRSTNAME,
-                lastName: loggedCustomer.CUSTOMER_LASTNAME,
-                phoneNumber: loggedCustomer.CUSTOMER_PHONE,
-                email: loggedCustomer.CUSTOMER_EMAIL,
-                creationDate: loggedCustomer.CUSTOMER_CREATEDAT
+                firstName: customer.FirstName,
+                lastName: customer.LastName,
+                phoneNumber: customer.Phone,
+                email: customer.Email,
+                creationDate: customer.CreatedAt
             };
 
         } catch (error: any) {
@@ -216,7 +187,9 @@ class AccountService {
         try {
             const customerId = utils.getCustomerByIdentifier(user.getName());
 
-            if (!customerId) {
+            const customer = this.customerDao.findById(customerId);
+
+            if (!customer) {
                 response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
                     response.BAD_REQUEST,
@@ -225,33 +198,28 @@ class AccountService {
                 );
             }
 
-            const salesOrderQuery = sql.getDialect()
-                .select()
-                .column('SALESORDER_ID')
-                .column('SALESORDER_DATE')
-                .column('SALESORDER_STATUS')
-                .column('SALESORDER_CURRENCY')
-                .column('SALESORDER_TOTAL')
-                .from('CODBEX_SALESORDER')
-                .where('SALESORDER_CUSTOMER = ?')
-                .build();
-
-            const salesOrderResults = query.execute(salesOrderQuery, [customerId]);
+            const salesOrderResults = this.salesOrderDao.findAll({
+                $filter: {
+                    equals: {
+                        Customer: customerId
+                    }
+                }
+            });
 
             if (salesOrderResults.length === 0) {
                 return [];
             }
 
             const salesOrders: SalesOrder[] = salesOrderResults.map(row => {
-                const currencyCode = utils.getCurrencyCode(row.SALESORDER_CURRENCY);
-                const status = utils.getSalesOrderStatus(row.SALESORDER_STATUS);
+                const currencyCode = utils.getCurrencyCode(row.Currency);
+                const status = utils.getSalesOrderStatus(row.Status);
 
                 return {
-                    id: String(row.SALESORDER_ID),
-                    creationDate: new Date(row.SALESORDER_DATE).toISOString(),
+                    id: String(row.Id),
+                    creationDate: new Date(row.Date).toISOString(),
                     status: status,
                     totalAmount: {
-                        amount: row.SALESORDER_TOTAL,
+                        amount: row.Total,
                         currency: currencyCode
                     } as Money
                 };
@@ -274,21 +242,23 @@ class AccountService {
         try {
             const loggedCustomer = utils.getCustomerByIdentifier(user.getName());
 
-            if (!loggedCustomer) {
+            const customer = this.customerDao.findById(loggedCustomer);
+
+            if (!customer) {
                 response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
                     response.BAD_REQUEST,
                     'Something went wrong',
-                    'Could not resolve customer from session'
+                    `Could not resolve customer from session ${loggedCustomer}`
                 );
             }
 
             const orderId = ctx.pathParameters.id;
 
             if (!orderId) {
-                response.setStatus(response.BAD_REQUEST);
+                response.setStatus(response.UNPROCESSABLE_CONTENT);
                 return utils.createErrorResponse(
-                    response.BAD_REQUEST,
+                    response.UNPROCESSABLE_CONTENT,
                     'Something went wrong',
                     'Order id is required'
                 );
@@ -314,61 +284,9 @@ class AccountService {
                 );
             }
 
-            const billingAddressQuery = sql.getDialect()
-                .select()
-                .column('CUSTOMERADDRESS_ID')
-                .column('CUSTOMERADDRESS_FIRSTNAME')
-                .column('CUSTOMERADDRESS_LASTNAME')
-                .column('CUSTOMERADDRESS_EMAIL')
-                .column('CUSTOMERADDRESS_PHONE')
-                .column('CUSTOMERADDRESS_ADRESSLINE1')
-                .column('CUSTOMERADDRESS_ADDRESSLINE2')
-                .column('CUSTOMERADDRESS_COUNTRY')
-                .column('CUSTOMERADDRESS_CITY')
-                .column('CUSTOMERADDRESS_POSTALCODE')
-                .column('CUSTOMERADDRESS_CUSTOMER')
-                .column('CUSTOMERADDRESS_CUSTOMERADDRESSTYPE')
-                .from('CODBEX_CUSTOMERADDRESS')
-                .leftJoin('CODBEX_SALESORDER', 'SALESORDER_BILLINGADDRESS = CUSTOMERADDRESS_ID')
-                .where('SALESORDER_ID = ?')
-                .build();
+            const salesOrder = this.salesOrderDao.findById(orderId);
 
-            const shippingAddressQuery = sql.getDialect()
-                .select()
-                .column('CUSTOMERADDRESS_ID')
-                .column('CUSTOMERADDRESS_FIRSTNAME')
-                .column('CUSTOMERADDRESS_LASTNAME')
-                .column('CUSTOMERADDRESS_EMAIL')
-                .column('CUSTOMERADDRESS_PHONE')
-                .column('CUSTOMERADDRESS_ADRESSLINE1')
-                .column('CUSTOMERADDRESS_ADDRESSLINE2')
-                .column('CUSTOMERADDRESS_COUNTRY')
-                .column('CUSTOMERADDRESS_CITY')
-                .column('CUSTOMERADDRESS_POSTALCODE')
-                .column('CUSTOMERADDRESS_CUSTOMER')
-                .column('CUSTOMERADDRESS_CUSTOMERADDRESSTYPE')
-                .from('CODBEX_CUSTOMERADDRESS')
-                .leftJoin('CODBEX_SALESORDER', 'SALESORDER_SHIPPINGADDRESS = CUSTOMERADDRESS_ID')
-                .where('SALESORDER_ID = ?')
-                .build();
-
-            const salesOrderQuery = sql.getDialect()
-                .select()
-                .column('SALESORDER_SENTMETHOD')
-                .column('SALESORDER_SHIPPINGADDRESS')
-                .column('SALESORDER_BILLINGADDRESS')
-                .column('SALESORDER_DATE')
-                .column('SALESORDER_CURRENCY')
-                .column('SALESORDER_TOTAL')
-                .column('SALESORDER_STATUS')
-                .column('SALESORDER_CONDITIONS')
-                .from('CODBEX_SALESORDER')
-                .where('SALESORDER_ID = ?')
-                .build();
-
-            const salesOrderResults = query.execute(salesOrderQuery, [orderId]);
-
-            if (!salesOrderResults || salesOrderResults.length === 0) {
+            if (!salesOrder) {
                 response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
                     response.BAD_REQUEST,
@@ -377,23 +295,24 @@ class AccountService {
                 );
             }
 
-            const billingAddressResult = query.execute(billingAddressQuery, [orderId]);
-            const shippingAddressResult = query.execute(shippingAddressQuery, [orderId]);
-            const mappedAddresses = accountUtils.mapAddresses([billingAddressResult[0], shippingAddressResult[0]]);
+            const billingAddress = this.customerAddressDao.findById(salesOrder.BillingAddress);
+            const shippingAddress = this.customerAddressDao.findById(salesOrder.ShippingAddress);
+
+            const mappedAddresses = accountUtils.mapAddresses([billingAddress, shippingAddress]);
 
             return {
                 id: String(orderId),
                 paymentMethod: "Cash",
-                shippingType: utils.getSentMethodName(salesOrderResults[0].SALESORDER_SENTMETHOD),
-                shippingAddress: mappedAddresses.shippingAddress,
-                billingAddress: mappedAddresses.billingAddress,
-                creationDate: salesOrderResults[0].SALESORDER_DATE,
+                shippingType: utils.getSentMethodName(salesOrder.SentMethod),
+                shippingAddress: mappedAddresses.shippingAddress[0],
+                billingAddress: mappedAddresses.billingAddress[0],
+                creationDate: salesOrder.Date,
                 totalAmount: {
-                    amount: salesOrderResults[0].SALESORDER_TOTAL,
-                    currency: utils.getCurrencyCode(salesOrderResults[0].SALESORDER_CURRENCY)
+                    amount: salesOrder.Total,
+                    currency: utils.getCurrencyCode(salesOrder.Currency)
                 },
-                status: utils.getSalesOrderStatus(salesOrderResults[0].SALESORDER_STATUS),
-                notes: salesOrderResults[0].SALESORDER_CONDITIONS,
+                status: utils.getSalesOrderStatus(salesOrder.Status),
+                notes: salesOrder.Conditions,
                 items: accountUtils.getSalesOrderItems(orderId)
             }
         } catch (error: any) {

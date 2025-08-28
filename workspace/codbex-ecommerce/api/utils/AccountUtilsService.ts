@@ -1,28 +1,31 @@
-import { query, sql } from 'sdk/db';
 import * as utils from './UtilsService';
 import { Address } from '../types/Types'
+
+import { SalesOrderItemRepository } from "codbex-orders/gen/codbex-orders/dao/SalesOrder/SalesOrderItemRepository";
+import { ProductRepository } from "codbex-products/gen/codbex-products/dao/Products/ProductRepository";
+
 
 export function mapAddresses(allAddresses: any[]): { shippingAddress: Address[]; billingAddress: Address[]; } {
 
     const mappedAddresses = allAddresses.map(row => {
 
-        const countryCode = utils.getCountryCode(row.CUSTOMERADDRESS_COUNTRY);
-        const countryName = utils.getCountryName(row.CUSTOMERADDRESS_COUNTRY);
-        const city = utils.getCityName(row.CUSTOMERADDRESS_CITY);
+        const countryCode = utils.getCountryCode(row.Country);
+        const countryName = utils.getCountryName(row.Country);
+        const city = utils.getCityName(row.City);
 
         return {
-            id: String(row.CUSTOMERADDRESS_ID),
-            firstName: row.CUSTOMERADDRESS_FIRSTNAME,
-            lastName: row.CUSTOMERADDRESS_LASTNAME,
+            id: String(row.Id),
+            firstName: row.FirstName,
+            lastName: row.LastName,
             country: countryCode,
             countryName: countryName,
-            addressLine1: row.CUSTOMERADDRESS_ADRESSLINE1,
-            addressLine2: row.CUSTOMERADDRESS_ADDRESSLINE2,
+            addressLine1: row.AddressLine1,
+            addressLine2: row.AddressLine2,
             city: city,
-            postalCode: row.CUSTOMERADDRESS_POSTALCODE,
-            phoneNumber: row.CUSTOMERADDRESS_PHONE,
-            email: row.CUSTOMERADDRESS_EMAIL,
-            addressType: String(row.CUSTOMERADDRESS_CUSTOMERADDRESSTYPE)
+            postalCode: row.PostalCode,
+            phoneNumber: row.Phone,
+            email: row.Email,
+            addressType: String(row.AddressType)
         };
     });
 
@@ -42,33 +45,27 @@ export function mapAddresses(allAddresses: any[]): { shippingAddress: Address[];
 
 export function getSalesOrderItems(salesorderId: number) {
 
-    const salesOrderItemsQuery = sql.getDialect()
-        .select()
-        .column('SALESORDERITEM_ID')
-        .column('SALESORDERITEM_QUANTITY')
-        .column('SALESORDERITEM_PRODUCT')
-        .from('CODBEX_SALESORDERITEM')
-        .where('SALESORDERITEM_SALESORDER = ?')
-        .build();
+    const SakesOrderItemDao = new SalesOrderItemRepository();
+    const ProductDao = new ProductRepository();
 
-    const productsQuery = sql.getDialect()
-        .select()
-        .column('PRODUCT_IMAGE')
-        .column('PRODUCT_TITLE')
-        .from('CODBEX_PRODUCT')
-        .where('PRODUCT_ID = ?')
-        .build();
+    const salesOrderItemsResult = SakesOrderItemDao.findAll({
+        $filter: {
+            equals: {
+                SalesOrder: salesorderId
+            }
+        }
+    });
 
-    const salesOrderItemResult = query.execute(salesOrderItemsQuery, [salesorderId]);
+    return salesOrderItemsResult.map(item => {
 
-    return salesOrderItemResult.map(item => {
-        const productRes = query.execute(productsQuery, [item.SALESORDERITEM_PRODUCT]);
+        const product = ProductDao.findById(item.Product);
 
         return {
-            productId: String(item.SALESORDERITEM_ID),
-            quantity: item.SALESORDERITEM_QUANTITY,
-            title: productRes[0].PRODUCT_TITLE,
-            image: productRes[0].PRODUCT_IMAGE
+            productId: product.Id,
+            quantity: item.Quantity,
+            title: product.Title,
+            image: product.Image,
+            price: product.Price
         }
     });
 }
