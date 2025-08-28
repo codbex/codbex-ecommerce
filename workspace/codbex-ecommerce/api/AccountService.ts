@@ -1,5 +1,4 @@
 import { Controller, Get, Put, Post, response } from "sdk/http";
-import { query, sql } from 'sdk/db';
 import * as utils from './utils/UtilsService';
 import * as accountUtils from './utils/AccountUtilsService';
 import { user } from 'sdk/security';
