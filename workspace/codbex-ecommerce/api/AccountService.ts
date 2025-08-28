@@ -314,7 +314,7 @@ class AccountService {
                 );
             }
 
-            const addressQuery = sql.getDialect()
+            const billingAddressQuery = sql.getDialect()
                 .select()
                 .column('CUSTOMERADDRESS_ID')
                 .column('CUSTOMERADDRESS_FIRSTNAME')
@@ -329,7 +329,27 @@ class AccountService {
                 .column('CUSTOMERADDRESS_CUSTOMER')
                 .column('CUSTOMERADDRESS_CUSTOMERADDRESSTYPE')
                 .from('CODBEX_CUSTOMERADDRESS')
-                .where('CUSTOMERADDRESS_CUSTOMER = ?')
+                .leftJoin('CODBEX_SALESORDER', 'SALESORDER_BILLINGADDRESS = CUSTOMERADDRESS_ID')
+                .where('SALESORDER_ID = ?')
+                .build();
+
+            const shippingAddressQuery = sql.getDialect()
+                .select()
+                .column('CUSTOMERADDRESS_ID')
+                .column('CUSTOMERADDRESS_FIRSTNAME')
+                .column('CUSTOMERADDRESS_LASTNAME')
+                .column('CUSTOMERADDRESS_EMAIL')
+                .column('CUSTOMERADDRESS_PHONE')
+                .column('CUSTOMERADDRESS_ADRESSLINE1')
+                .column('CUSTOMERADDRESS_ADDRESSLINE2')
+                .column('CUSTOMERADDRESS_COUNTRY')
+                .column('CUSTOMERADDRESS_CITY')
+                .column('CUSTOMERADDRESS_POSTALCODE')
+                .column('CUSTOMERADDRESS_CUSTOMER')
+                .column('CUSTOMERADDRESS_CUSTOMERADDRESSTYPE')
+                .from('CODBEX_CUSTOMERADDRESS')
+                .leftJoin('CODBEX_SALESORDER', 'SALESORDER_SHIPPINGADDRESS = CUSTOMERADDRESS_ID')
+                .where('SALESORDER_ID = ?')
                 .build();
 
             const salesOrderQuery = sql.getDialect()
@@ -357,8 +377,9 @@ class AccountService {
                 );
             }
 
-            const allAddresses = query.execute(addressQuery, [loggedCustomer]);
-            const mappedAddresses = accountUtils.mapAddresses(allAddresses);
+            const billingAddressResult = query.execute(billingAddressQuery, [orderId]);
+            const shippingAddressResult = query.execute(shippingAddressQuery, [orderId]);
+            const mappedAddresses = accountUtils.mapAddresses([billingAddressResult[0], shippingAddressResult[0]]);
 
             return {
                 id: String(orderId),

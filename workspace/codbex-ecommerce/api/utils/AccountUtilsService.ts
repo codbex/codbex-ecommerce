@@ -2,7 +2,7 @@ import { query, sql } from 'sdk/db';
 import * as utils from './UtilsService';
 import { Address } from '../types/Types'
 
-export function mapAddresses(allAddresses): { shippingAddress: Address[]; billingAddress: Address[]; } {
+export function mapAddresses(allAddresses: any[]): { shippingAddress: Address[]; billingAddress: Address[]; } {
 
     const mappedAddresses = allAddresses.map(row => {
 
@@ -46,14 +46,29 @@ export function getSalesOrderItems(salesorderId: number) {
         .select()
         .column('SALESORDERITEM_ID')
         .column('SALESORDERITEM_QUANTITY')
+        .column('SALESORDERITEM_PRODUCT')
         .from('CODBEX_SALESORDERITEM')
         .where('SALESORDERITEM_SALESORDER = ?')
         .build();
 
+    const productsQuery = sql.getDialect()
+        .select()
+        .column('PRODUCT_IMAGE')
+        .column('PRODUCT_TITLE')
+        .from('CODBEX_PRODUCT')
+        .where('PRODUCT_ID = ?')
+        .build();
+
     const salesOrderItemResult = query.execute(salesOrderItemsQuery, [salesorderId]);
 
-    return salesOrderItemResult.map(item => ({
-        productId: String(item.SALESORDERITEM_ID),
-        quantity: item.SALESORDERITEM_QUANTITY
-    }));
+    return salesOrderItemResult.map(item => {
+        const productRes = query.execute(productsQuery, [item.SALESORDERITEM_PRODUCT]);
+
+        return {
+            productId: String(item.SALESORDERITEM_ID),
+            quantity: item.SALESORDERITEM_QUANTITY,
+            title: productRes[0].PRODUCT_TITLE,
+            image: productRes[0].PRODUCT_IMAGE
+        }
+    });
 }
