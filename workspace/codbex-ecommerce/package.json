@@ -11,7 +11,7 @@
   "dependencies": {
     "@codbex/codbex-inventory": "^0.12.2",
     "@codbex/codbex-orders": "^0.8.3",
-    "@codbex/codbex-orders-processes": "^0.2.2",
+    "@codbex/codbex-orders-processes": "^0.2.3",
     "@codbex/codbex-invoices": "^0.9.3"
   },
   "scripts": {
