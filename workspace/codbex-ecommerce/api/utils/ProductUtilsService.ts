@@ -1,26 +1,37 @@
-import { query, sql } from 'sdk/db';
 import { Money } from '../types/Types';
+
+import { CampaignRepository } from "codbex-products/gen/codbex-products/dao/Campaigns/CampaignRepository";
+import { CurrencyRepository } from "codbex-currencies/gen/codbex-currencies/dao/Settings/CurrencyRepository";
+import { CampaignEntryRepository } from "codbex-products/gen/codbex-products/dao/Products/CampaignEntryRepository";
+import { ProductImageRepository } from "codbex-products/gen/codbex-products/dao/Products/ProductImageRepository";
+import { ProductAvailabilityRepository } from "codbex-inventory/gen/codbex-inventory/dao/Products/ProductAvailabilityRepository";
+
+const CurrencyDao = new CurrencyRepository();
+const ProductAvailabilityDao = new ProductAvailabilityRepository();
+const ProductImageDao = new ProductImageRepository();
+const CampaignEntryDao = new CampaignEntryRepository();
+const CampaignDao = new CampaignRepository();
 
 export function getProductsResponse(productIds: any[], products: any[]) {
     const imageMap = getProductsImages(productIds);
     const availabilityMap = getProductsAvailability(productIds);
     const currencyMap = mapProductIdToCurrencyCode(products);
 
-    const filteredProducts = products.filter(p => productIds.includes(p.PRODUCT_ID));
+    const filteredProducts = products.filter(p => productIds.includes(p.Id));
 
     const productsResponse = filteredProducts.map(p => {
-        const imageData = imageMap.get(p.PRODUCT_ID) ?? { featuredImage: null, images: [] };
-        const isAvailable = availabilityMap.get(p.PRODUCT_ID) ?? false;
-        const currencyCode = currencyMap.get(p.PRODUCT_ID) ?? 'UNKNOWN';
-        const productCampaign = getCampaign(p.PRODUCT_ID);
+        const imageData = imageMap.get(p.Id) ?? { featuredImage: null, images: [] };
+        const isAvailable = availabilityMap.get(p.Id) ?? false;
+        const currencyCode = currencyMap.get(p.Id) ?? 'UNKNOWN';
+        const productCampaign = getCampaign(p.Id);
 
         return {
-            id: String(p.PRODUCT_ID),
-            sku: p.PRODUCT_SKU,
-            title: p.PRODUCT_TITLE,
-            shortDescription: p.PRODUCT_SHORTDESCRIPTION,
+            id: String(p.Id),
+            sku: p.SKU,
+            title: p.Title,
+            shortDescription: p.ShortDescription,
             price: {
-                amount: productCampaign ? productCampaign.newPrice : p.PRODUCT_PRICE,
+                amount: productCampaign ? productCampaign.newPrice : p.Price,
                 currency: currencyCode,
             } as Money,
             discountPrice: productCampaign
@@ -29,9 +40,9 @@ export function getProductsResponse(productIds: any[], products: any[]) {
             oldPrice: productCampaign
                 ? { amount: productCampaign.oldPrice, currency: currencyCode } as Money
                 : null,
-            brand: String(p.PRODUCT_MANUFACTURER),
+            brand: String(p.Manufacturer),
             discountPercentage: productCampaign?.discountPercentage ?? null,
-            category: String(p.PRODUCT_CATEGORY),
+            category: String(p.Category),
             availableForSale: isAvailable,
             featuredImage: imageData.featuredImage,
             images: imageData.images
@@ -58,43 +69,31 @@ export function productsIdsInCampaign(productIds: number[]): number[] {
 
 export function getCampaign(productId: number) {
 
-    const productQuery = sql.getDialect()
-        .select()
-        .column('CAMPAIGNENTRY_OLDPRICE')
-        .column('CAMPAIGNENTRY_CAMPAIGN')
-        .column('CAMPAIGNENTRY_NEWPRICE')
-        .column('CAMPAIGNENTRY_PERCENT')
-        .from('CODBEX_CAMPAIGNENTRY')
-        .where('CAMPAIGNENTRY_PRODUCT = ?')
-        .build();
+    const products = CampaignEntryDao.findAll({
+        $filter: {
+            equals: {
+                Product: productId
+            }
+        }
+    });
 
-    const products = query.execute(productQuery, [productId]);
-
-    if (!products || products.length === 0) {
+    if (products.length === 0) {
         return null;
     }
 
-    const campaignId = products[0].CAMPAIGNENTRY_CAMPAIGN;
+    const campaignId = products[0].Campaign;
     if (!campaignId) {
         return null;
     }
 
-    const campaignQuery = sql.getDialect()
-        .select()
-        .column('CAMPAIGN_STARTDATE')
-        .column('CAMPAIGN_ENDDATE')
-        .from('CODBEX_CAMPAIGN')
-        .where('CAMPAIGN_ID = ?')
-        .build();
+    const campaigns = CampaignDao.findById(campaignId);
 
-    const campaigns = query.execute(campaignQuery, [campaignId]);
-
-    if (!campaigns || campaigns.length === 0) {
+    if (!campaigns) {
         return null;
     }
 
-    const startDate = new Date(campaigns[0].CAMPAIGN_STARTDATE);
-    const endDate = new Date(campaigns[0].CAMPAIGN_ENDDATE);
+    const startDate = new Date(campaigns.StartDate);
+    const endDate = new Date(campaigns.EndDate);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -103,44 +102,31 @@ export function getCampaign(productId: number) {
 
     return isTodayInRange
         ? {
-            oldPrice: products[0].CAMPAIGNENTRY_OLDPRICE,
-            newPrice: products[0].CAMPAIGNENTRY_NEWPRICE,
-            discountPercentage: products[0].CAMPAIGNENTRY_PERCENT
+            oldPrice: products[0].OldPrice,
+            newPrice: products[0].NewPrice,
+            discountPercentage: products[0].Percent
         }
         : null;
 }
 
 export function getProductsImages(productIds: number[]) {
-    if (productIds.length === 0) {
-        return new Map();
-    }
+    if (productIds.length === 0) return new Map();
 
-    const placeholders = productIds.map(() => '?').join(',');
-
-    const imagesQuery = sql.getDialect()
-        .select()
-        .column('PRODUCTIMAGE_PRODUCT')
-        .column('PRODUCTIMAGE_IMAGELINK')
-        .column('PRODUCTIMAGE_ISFEATURE')
-        .from('CODBEX_PRODUCTIMAGE')
-        .where(`PRODUCTIMAGE_PRODUCT IN (${placeholders})`)
-        .build();
-
-    const images = query.execute(imagesQuery, productIds);
+    const productImages = ProductImageDao.findAll();
 
     const imageMap = new Map();
 
-    for (const img of images) {
-        const key = img.PRODUCTIMAGE_PRODUCT;
+    for (const img of productImages) {
 
-        if (!imageMap.has(key)) {
-            imageMap.set(key, { featuredImage: null, images: [] });
+        if (!imageMap.has(img.Product)) {
+            imageMap.set(img.Product, { featuredImage: null, images: [] });
         }
-        const entry = imageMap.get(key);
-        entry.images.push(img.PRODUCTIMAGE_IMAGELINK);
 
-        if (img.PRODUCTIMAGE_ISFEATURE === true && !entry.featuredImage) {
-            entry.featuredImage = img.PRODUCTIMAGE_IMAGELINK;
+        const entry = imageMap.get(img.Product)!;
+        entry.images.push(img.ImageLink);
+
+        if (img.IsFeature && !entry.featuredImage) {
+            entry.featuredImage = img.ImageLink;
         }
     }
 
@@ -148,19 +134,17 @@ export function getProductsImages(productIds: number[]) {
 }
 
 export function getProductsAvailability(productIds: string[]): Map<string, boolean> {
-    const availabilityRows = query.execute(
-        sql.getDialect()
-            .select()
-            .column('PRODUCTAVAILABILITY_PRODUCT')
-            .column('PRODUCTAVAILABILITY_QUANTITY')
-            .from('CODBEX_PRODUCTAVAILABILITY')
-            .where(`PRODUCTAVAILABILITY_PRODUCT IN (${productIds})`)
-            .build()
-    );
-
     const map = new Map<string, boolean>();
-    for (const row of availabilityRows) {
-        map.set(row.PRODUCTAVAILABILITY_PRODUCT, row.PRODUCTAVAILABILITY_QUANTITY > 0);
+
+    for (const id of productIds) {
+        const rows = ProductAvailabilityDao.findAll({
+            $filter: {
+                equals: { Product: parseInt(id, 10) }
+            }
+        });
+
+        const available = rows.some(row => row.Quantity > 0);
+        map.set(id, available);
     }
 
     return map;
@@ -168,34 +152,12 @@ export function getProductsAvailability(productIds: string[]): Map<string, boole
 
 export function mapProductIdToCurrencyCode(products: any): Map<number, string> {
 
-    const currencyIds = products.map(p => p.PRODUCT_CURRENCY);
+    const currencyIds = products.map(p => p.Currency);
+    const currencies = currencyIds.map(id => CurrencyDao.findById(id))
 
-    const currencyQuery = sql.getDialect()
-        .select()
-        .column('CURRENCY_ID')
-        .column('CURRENCY_CODE')
-        .from('CODBEX_CURRENCY')
-        .where(`CURRENCY_ID IN (${currencyIds.map(() => '?').join(',')})`)
-        .build();
-
-    const currencies = query.execute(currencyQuery, currencyIds);
-
-    const currencyMap = new Map(currencies.map(c => [c.CURRENCY_ID, c.CURRENCY_CODE]));
+    const currencyMap = new Map(currencies.map(c => [c.Id, c.Code]));
 
     return new Map(
-        products.map(p => [p.PRODUCT_ID, currencyMap.get(p.PRODUCT_CURRENCY)])
+        products.map(p => [p.Id, currencyMap.get(p.Currency)])
     );
-}
-
-export function getCurrencyCode(currencyId: number) {
-
-    const currencyQuery = sql.getDialect()
-        .select()
-        .column('CURRENCY_CODE')
-        .from('CODBEX_CURRENCY')
-        .where('CURRENCY_ID = ?')
-        .build();
-
-    const result = query.execute(currencyQuery, [currencyId]);
-    return result.length > 0 ? result[0].CURRENCY_CODE : null;
 }

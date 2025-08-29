@@ -1,6 +1,25 @@
-import { query, sql } from 'sdk/db';
 import { uuid } from "sdk/utils";
 import { ErrorResponse } from '../types/Types'
+
+import { CustomerAddressRepository } from "codbex-partners/gen/codbex-partners/dao/Customers/CustomerAddressRepository";
+import { CustomerAddressTypeRepository } from "codbex-partners/gen/codbex-partners/dao/Settings/CustomerAddressTypeRepository";
+import { CustomerRepository } from "codbex-partners/gen/codbex-partners/dao/Customers/CustomerRepository";
+import { SalesOrderStatusRepository } from "codbex-orders/gen/codbex-orders/dao/Settings/SalesOrderStatusRepository";
+import { SalesOrderRepository } from "codbex-orders/gen/codbex-orders/dao/SalesOrder/SalesOrderRepository";
+import { SentMethodRepository } from "codbex-methods/gen/codbex-methods/dao/Settings/SentMethodRepository";
+import { CurrencyRepository } from "codbex-currencies/gen/codbex-currencies/dao/Settings/CurrencyRepository";
+import { CountryRepository } from "codbex-countries/gen/codbex-countries/dao/Settings/CountryRepository";
+import { CityRepository } from "codbex-cities/gen/codbex-cities/dao/Settings/CityRepository";
+
+const CustomerDao = new CustomerRepository();
+const SentMethodDao = new SentMethodRepository();
+const CurrencyDao = new CurrencyRepository();
+const SalesOrderStatusDao = new SalesOrderStatusRepository();
+const SalesOrderDao = new SalesOrderRepository();
+const CountryDao = new CountryRepository();
+const CityDao = new CityRepository();
+const CustomerAddressDao = new CustomerAddressRepository();
+const CustomerAddressTypeDao = new CustomerAddressTypeRepository();
 
 export function createErrorResponse(
     statusCode: number,
@@ -24,72 +43,96 @@ export function createErrorResponse(
     };
 }
 
-function getColumnByWhere<T>(
-    table: string,
-    column: string,
-    whereClause: string,
-    params: any[]
-): T | undefined {
-    const q = sql.getDialect()
-        .select()
-        .column(column)
-        .from(table)
-        .where(whereClause)
-        .build();
+// function getColumnByWhere<T>(
+//     table: string,
+//     column: string,
+//     whereClause: string,
+//     params: any[]
+// ): T | undefined {
+//     const q = sql.getDialect()
+//         .select()
+//         .column(column)
+//         .from(table)
+//         .where(whereClause)
+//         .build();
 
-    const result = query.execute(q, params);
-    return result.length === 0 ? undefined : result[0][column] as T;
-}
+//     const result = query.execute(q, params);
+//     return result.length === 0 ? undefined : result[0][column] as T;
+// }
 
 export function getCustomerByAddress(addressId: number) {
-    return getColumnByWhere<number>('CODBEX_CUSTOMERADDRESS', 'CUSTOMERADDRESS_CUSTOMER', 'CUSTOMERADDRESS_ID = ?', [addressId]);
+    return CustomerAddressDao.findById(addressId).Customer;
+    // return getColumnByWhere<number>('CODBEX_CUSTOMERADDRESS', 'CUSTOMERADDRESS_CUSTOMER', 'CUSTOMERADDRESS_ID = ?', [addressId]);
 }
 
 export function getCustomerByIdentifier(identifier: string) {
-    return getColumnByWhere<number>('CODBEX_CUSTOMER', 'CUSTOMER_ID', 'CUSTOMER_IDENTIFIER = ?', [identifier]);
+    return CustomerDao.findAll({
+        $filter: {
+            equals: {
+                Identifier: identifier
+            }
+        }
+    })[0].Id;
+    // return getColumnByWhere<number>('CODBEX_CUSTOMER', 'CUSTOMER_ID', 'CUSTOMER_IDENTIFIER = ?', [identifier]);
 }
 
 export function getCustomerEmail(id: number) {
-    return getColumnByWhere<string>('CODBEX_CUSTOMER', 'CUSTOMER_EMAIL', 'CUSTOMER_ID = ?', [id]);
+    return CustomerDao.findById(id).Email;
 }
 
 export function getSalesOrderStatus(statusId: number) {
-    return getColumnByWhere<string>('CODBEX_SALESORDERSTATUS', 'SALESORDERSTATUS_NAME', 'SALESORDERSTATUS_ID = ?', [statusId]);
+    return SalesOrderStatusDao.findById(statusId).Name;
 }
-
 export function getCurrencyCode(currencyId: number) {
-    return getColumnByWhere<string>('CODBEX_CURRENCY', 'CURRENCY_CODE', 'CURRENCY_ID = ?', [currencyId]);
+    return CurrencyDao.findById(currencyId).Code;
 }
 
-export function getCountryId(countryName: string) {
-    return getColumnByWhere<number>('CODBEX_COUNTRY', 'COUNTRY_ID', 'COUNTRY_CODE3 = ?', [countryName]);
+export function getCountryId(code3: string) {
+    return CountryDao.findAll({
+        $filter: {
+            equals: {
+                Code3: code3
+            }
+        }
+    })[0].Id;
 }
 
 export function getCountryCode(countryId: number) {
-    return getColumnByWhere<string>('CODBEX_COUNTRY', 'COUNTRY_CODE3', 'COUNTRY_ID = ?', [countryId]);
+    return CountryDao.findById(countryId).Code3;
 }
 
 export function getCountryName(countryId: number) {
-    return getColumnByWhere<string>('CODBEX_COUNTRY', 'COUNTRY_NAME', 'COUNTRY_ID = ?', [countryId]);
+    return CountryDao.findById(countryId).Name;
 }
 
 export function getCityId(cityName: string) {
-    const id = getColumnByWhere<number>('CODBEX_CITY', 'CITY_ID', 'CITY_NAME = ?', [cityName]);
-    return id;
+    return CityDao.findAll({
+        $filter: {
+            equals: {
+                Name: cityName
+            }
+        }
+    })[0].Id;
 }
 
 export function getCityName(cityId: number) {
-    return getColumnByWhere<string>('CODBEX_CITY', 'CITY_NAME', 'CITY_ID = ?', [cityId]);
+    return CityDao.findById(cityId).Name;
 }
 
 export function getSentMethodName(sentMethodId: number) {
-    return getColumnByWhere<string>('CODBEX_SENTMETHOD', 'SENTMETHOD_NAME', 'SENTMETHOD_ID = ?', [sentMethodId]);
+    return SentMethodDao.findById(sentMethodId).Name;
 }
 
 export function getAddressId(addressName: string) {
-    return getColumnByWhere<number>('CODBEX_CUSTOMERADDRESSTYPE', 'CUSTOMERADDRESSTYPE_ID', 'CUSTOMERADDRESSTYPE_NAME = ?', [addressName]);
+    return CustomerAddressTypeDao.findAll({
+        $filter: {
+            equals: {
+                Name: addressName
+            }
+        }
+    })[0].Id;
 }
 
 export function getCustomerByOrder(orderId: number) {
-    return getColumnByWhere<number>('CODBEX_SALESORDER', 'SALESORDER_CUSTOMER', 'SALESORDER_ID = ?', [orderId]);
+    return SalesOrderDao.findById(orderId).Customer;
 }
