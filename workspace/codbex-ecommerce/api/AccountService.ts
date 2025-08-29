@@ -86,7 +86,7 @@ class AccountService {
                 firstName: createdCustomer.FirstName,
                 lastName: createdCustomer.LastName,
                 phoneNumber: createdCustomer.Phone,
-                email: createdCustomer.EmailL,
+                email: createdCustomer.Email,
                 creationDate: createdCustomer.CreatedAt
             };
 

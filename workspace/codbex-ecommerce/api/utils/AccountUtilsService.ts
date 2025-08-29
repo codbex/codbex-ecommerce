@@ -1,9 +1,11 @@
 import * as utils from './UtilsService';
-import { Address } from '../types/Types'
+import { Address, Money } from '../types/Types'
 
 import { SalesOrderItemRepository } from "codbex-orders/gen/codbex-orders/dao/SalesOrder/SalesOrderItemRepository";
+import { SalesOrderRepository } from "codbex-orders/gen/codbex-orders/dao/SalesOrder/SalesOrderRepository";
 import { ProductRepository } from "codbex-products/gen/codbex-products/dao/Products/ProductRepository";
-
+import { CurrencyRepository } from "codbex-currencies/gen/codbex-currencies/dao/Settings/CurrencyRepository";
+import { ProductImageRepository } from "codbex-products/gen/codbex-products/dao/Products/ProductImageRepository";
 
 export function mapAddresses(allAddresses: any[]): { shippingAddress: Address[]; billingAddress: Address[]; } {
 
@@ -45,10 +47,13 @@ export function mapAddresses(allAddresses: any[]): { shippingAddress: Address[];
 
 export function getSalesOrderItems(salesorderId: number) {
 
-    const SakesOrderItemDao = new SalesOrderItemRepository();
+    const SalesOrderItemDao = new SalesOrderItemRepository();
+    const SalesOrderDao = new SalesOrderRepository();
     const ProductDao = new ProductRepository();
+    const CurrencyDao = new CurrencyRepository();
+    const ProductImageDao = new ProductImageRepository();
 
-    const salesOrderItemsResult = SakesOrderItemDao.findAll({
+    const salesOrderItemsResult = SalesOrderItemDao.findAll({
         $filter: {
             equals: {
                 SalesOrder: salesorderId
@@ -56,16 +61,30 @@ export function getSalesOrderItems(salesorderId: number) {
         }
     });
 
+    const salesOrder = SalesOrderDao.findById(salesorderId);
+
     return salesOrderItemsResult.map(item => {
 
         const product = ProductDao.findById(item.Product);
+        const currency = CurrencyDao.findById(salesOrder.Currency);
+        const image = ProductImageDao.findAll({
+            $filter: {
+                equals: {
+                    Product: product.Id,
+                    IsFeature: true
+                }
+            }
+        });
 
         return {
             productId: product.Id,
             quantity: item.Quantity,
             title: product.Title,
-            image: product.Image,
-            price: product.Price
+            image: image[0].ImageLink,
+            price: {
+                amount: product.Price,
+                currency: currency.Code,
+            } as Money,
         }
     });
 }
