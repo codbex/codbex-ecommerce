@@ -98,23 +98,23 @@ class ProductService {
             }
 
             const productIds = allProducts.map(p => p.Id);
-            const productsInCampaign = productUtils.productsIdsInCampaign(productIds);
+            const productsIdsInCampaign = productUtils.productsIdsInCampaign(productIds);
 
-            let limitedProducts = [];
+            let limitedProductIds = [];
 
             if (limit !== undefined && !isNaN(limit)) {
                 let count = 0;
-                while (count < limit && productsInCampaign[count]) {
-                    limitedProducts.push(productsInCampaign[count]);
+                while (count < limit && productsIdsInCampaign[count]) {
+                    limitedProductIds.push(productsIdsInCampaign[count]);
                     count++;
                 }
             } else {
-                limitedProducts = productsInCampaign.slice();
+                limitedProductIds = productsIdsInCampaign;
             }
 
-            const limitedProductEntities = productUtils.getLimitedProductEntities(limitedProducts);
+            const limitedProductEntities = productUtils.getLimitedProductEntities(limitedProductIds);
 
-            const productsResponse = productUtils.getProductsResponse(productsInCampaign, limitedProductEntities);
+            const productsResponse = productUtils.getProductsResponse(productsIdsInCampaign, limitedProductEntities);
 
             return productsResponse;
 
