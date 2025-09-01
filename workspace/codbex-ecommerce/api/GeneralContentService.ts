@@ -25,24 +25,13 @@ class GeneralContentService {
 
     @Get("/content/menu")
     public menuData() {
+        this.getContent("menu.json");
 
-        const protocol = request.getScheme() + "://";
-        const domain = request.getHeader("Host")
-
-        const clientResponse = client.get(`${protocol}${domain}/public/js/documents/api/documents.js/preview?path=/hayat-documents/menu.json`);
-
-        return JSON.parse(clientResponse.text);
     }
 
     @Get("/content/footer")
     public footerData() {
-
-        const protocol = request.getScheme() + "://";
-        const domain = request.getHeader("Host")
-
-        const clientResponse = client.get(`${protocol}${domain}/public/js/documents/api/documents.js/preview?path=/hayat-documents/footer.json`);
-
-        return JSON.parse(clientResponse.text);
+        this.getContent("footer.json");
     }
 
     @Get("/categories")
@@ -125,6 +114,15 @@ class GeneralContentService {
             response.setStatus(response.INTERNAL_SERVER_ERROR);
             return utils.createErrorResponse(response.INTERNAL_SERVER_ERROR, 'Something went wrong', error);
         }
+    }
+
+    private getContent(file: string) {
+        const protocol = request.getScheme() + "://";
+        const domain = request.getHeader("Host")
+
+        const clientResponse = client.get(`${protocol}${domain}/public/js/documents/api/documents.js/preview?path=/hayat-documents/${file}`);
+
+        return JSON.parse(clientResponse.text);
     }
 
 }

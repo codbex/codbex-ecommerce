@@ -1,48 +1,64 @@
-import { Controller, Get, response } from "sdk/http";
-import { query, sql } from 'sdk/db';
+import { Controller, Get, response, request } from "sdk/http";
 import * as utils from './utils/UtilsService';
 import * as productUtils from './utils/ProductUtilsService';
 import { Money, ErrorResponse, ProductResponse } from './types/Types';
 
+import { ProductRepository as ProductDao } from "codbex-products/gen/codbex-products/dao/Products/ProductRepository";
+import { ProductAttributeRepository as ProductAttributeDao } from "codbex-products/gen/codbex-products/dao/Products/ProductAttributeRepository";
+import { ProductImageRepository as ProductImageDao } from "codbex-products/gen/codbex-products/dao/Products/ProductImageRepository";
+import { ProductAvailabilityRepository as ProductAvailabilityDao } from "codbex-inventory/gen/codbex-inventory/dao/Products/ProductAvailabilityRepository";
+import { ProductAttributeGroupRepository as ProductAttributeGroupDao } from "codbex-products/gen/codbex-products/dao/Settings/ProductAttributeGroupRepository";
+
 @Controller
 class ProductService {
+
+    private readonly productDao;
+    private readonly productAttributeDao;
+    private readonly productImageDao;
+    private readonly productAvailabilityDao;
+    private readonly productAttributeGroupDao;
+
+    constructor() {
+        this.productDao = new ProductDao();
+        this.productAttributeDao = new ProductAttributeDao();
+        this.productImageDao = new ProductImageDao();
+        this.productAvailabilityDao = new ProductAvailabilityDao();
+        this.productAttributeGroupDao = new ProductAttributeGroupDao();
+    }
 
     @Get("products/search/:text")
     public productsSearch(_: any, ctx: any) {
 
         const searchText = ctx.pathParameters.text;
         try {
-            const productSearchQuery = sql.getDialect()
-                .select()
-                .column('PRODUCT_ID')
-                .column('PRODUCT_TITLE')
-                .column('PRODUCT_PRICE')
-                .column('PRODUCT_CURRENCY')
-                .from('CODBEX_PRODUCT')
-                .where('UPPER(PRODUCT_TITLE) LIKE UPPER(?) OR UPPER(PRODUCT_DESCRIPTION) LIKE UPPER(?)')
-                .limit(20)
-                .build();
+            const allProducts = this.productDao.findAll();
 
-            const products = query.execute(productSearchQuery, ["%" + searchText + "%", "%" + searchText + "%"]);
+            const products = allProducts
+                .filter(product =>
+                    product.Title.toLowerCase().includes(searchText.toLowerCase()) ||
+                    product.ShortDescription.toLowerCase().includes(searchText.toLowerCase())
+                )
+                .slice(0, 19);
 
             if (!products || products.length === 0) {
                 return [];
             }
 
-            const productIds = products.map(p => p.PRODUCT_ID);
+            const productIds = products.map(p => p.Id);
             const imageMap = productUtils.getProductsImages(productIds);
+
             const currencyMap = productUtils.mapProductIdToCurrencyCode(products);
 
             const productsResponse = products.map(p => {
-                const imageData = imageMap.get(p.PRODUCT_ID) ?? { featuredImage: null, images: [] };
-                const currencyCode = currencyMap.get(p.PRODUCT_ID) ?? 'UNKNOWN';
-                const productCampaign = productUtils.getCampaign(p.PRODUCT_ID);
+                const imageData = imageMap.get(p.Id) ?? { featuredImage: null, images: [] };
+                const currencyCode = currencyMap.get(p.Id) ?? 'UNKNOWN';
+                const productCampaign = productUtils.getCampaign(p.Id);
 
                 return {
-                    id: String(p.PRODUCT_ID),
-                    title: p.PRODUCT_TITLE,
+                    id: String(p.Id),
+                    title: p.Title,
                     price: {
-                        amount: productCampaign ? productCampaign.newPrice : p.PRODUCT_PRICE,
+                        amount: productCampaign ? productCampaign.newPrice : p.Price,
                         currency: currencyCode,
                     } as Money,
                     oldPrice: productCampaign
@@ -66,23 +82,13 @@ class ProductService {
 
     @Get("/products/promotions")
     public productPromotionsData(): ProductResponse[] | ErrorResponse {
+        const limitStr = request.getParameter("limit");
+        const limit = limitStr !== null && !isNaN(parseInt(limitStr)) ? parseInt(limitStr) : undefined;
+
         try {
-            const productQuery = sql.getDialect()
-                .select()
-                .column('PRODUCT_ID')
-                .column('PRODUCT_SKU')
-                .column('PRODUCT_TITLE')
-                .column('PRODUCT_CATEGORY')
-                .column('PRODUCT_MANUFACTURER')
-                .column('PRODUCT_SHORTDESCRIPTION')
-                .column('PRODUCT_PRICE')
-                .column('PRODUCT_CURRENCY')
-                .from('CODBEX_PRODUCT')
-                .build();
+            const allProducts = this.productDao.findAll();
 
-            const products = query.execute(productQuery) || [];
-
-            if (products.length === 0) {
+            if (allProducts.length === 0) {
                 response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
                     response.BAD_REQUEST,
@@ -91,9 +97,24 @@ class ProductService {
                 );
             }
 
-            const productIds = products.map(p => p.PRODUCT_ID);
-            const productsInCampaign = productUtils.productsIdsInCampaign(productIds);
-            const productsResponse = productUtils.getProductsResponse(productsInCampaign, products);
+            const productIds = allProducts.map(p => p.Id);
+            const productsIdsInCampaign = productUtils.productsIdsInCampaign(productIds);
+
+            let limitedProductIds = [];
+
+            if (limit !== undefined && !isNaN(limit)) {
+                let count = 0;
+                while (count < limit && productsIdsInCampaign[count]) {
+                    limitedProductIds.push(productsIdsInCampaign[count]);
+                    count++;
+                }
+            } else {
+                limitedProductIds = productsIdsInCampaign;
+            }
+
+            const limitedProductEntities = productUtils.getLimitedProductEntities(limitedProductIds);
+
+            const productsResponse = productUtils.getProductsResponse(productsIdsInCampaign, limitedProductEntities);
 
             return productsResponse;
 
@@ -110,21 +131,8 @@ class ProductService {
     @Get("/products")
     public productsData(): ProductResponse[] | ErrorResponse {
         try {
-            const productQuery = sql.getDialect()
-                .select()
-                .column('PRODUCT_ID')
-                .column('PRODUCT_SKU')
-                .column('PRODUCT_TITLE')
-                .column('PRODUCT_CATEGORY')
-                .column('PRODUCT_MANUFACTURER')
-                .column('PRODUCT_SHORTDESCRIPTION')
-                .column('PRODUCT_PRICE')
-                .column('PRODUCT_CURRENCY')
-                .from('CODBEX_PRODUCT')
-                .limit(30)
-                .build();
-
-            const products = query.execute(productQuery) || [];
+            const allProducts = this.productDao.findAll();
+            const products = allProducts.slice(0, 30);
 
             if (products.length === 0) {
                 response.setStatus(response.BAD_REQUEST);
@@ -135,7 +143,7 @@ class ProductService {
                 );
             }
 
-            const productIds = products.map(p => p.PRODUCT_ID);
+            const productIds = products.map(p => p.Id);
             const productsResponse = productUtils.getProductsResponse(productIds, products);
 
             return productsResponse;
@@ -156,55 +164,47 @@ class ProductService {
             const productId = ctx.pathParameters.productId;
 
             if (!productId) {
-                response.setStatus(response.BAD_REQUEST);
+                response.setStatus(response.UNPROCESSABLE_CONTENT);
                 return utils.createErrorResponse(
-                    response.BAD_REQUEST,
+                    response.UNPROCESSABLE_CONTENT,
                     'Invalid request',
                     'Product ID is required'
                 );
             }
 
-            const productQuery = sql.getDialect()
-                .select()
-                .column('PRODUCT_ID')
-                .column('PRODUCT_TITLE')
-                .column('PRODUCT_SKU')
-                .column('PRODUCT_CATEGORY')
-                .column('PRODUCT_MANUFACTURER')
-                .column('PRODUCT_SHORTDESCRIPTION')
-                .column('PRODUCT_DESCRIPTION')
-                .column('PRODUCT_PRICE')
-                .column('PRODUCT_CURRENCY')
-                .from('CODBEX_PRODUCT')
-                .where('PRODUCT_ID = ?')
-                .build();
+            const productsResult = this.productDao.findById(productId);
+            const imagesResult = this.productImageDao.findAll({
+                $filter: {
+                    equals: {
+                        Product: productId
+                    }
+                }
+            });
+            const availabilityResult = this.productAvailabilityDao.findAll({
+                $filter: {
+                    equals: {
+                        Product: productId
+                    }
+                }
+            })[0];
 
-            const attributeQuery = sql.getDialect()
-                .select()
-                .column('PRODUCTATTRIBUTE_NAME')
-                .column('PRODUCTATTRIBUTE_VALUE')
-                .column('PRODUCTATTRIBUTEGROUP_NAME')
-                .from('CODBEX_PRODUCTATTRIBUTE')
-                .leftJoin('CODBEX_PRODUCTATTRIBUTEGROUP', 'PRODUCTATTRIBUTE_GROUP = PRODUCTATTRIBUTEGROUP_ID')
-                .where('PRODUCTATTRIBUTE_PRODUCT = ?')
-                .build();
+            const attributes = this.productAttributeDao.findAll({
+                $filter: {
+                    equals: {
+                        Product: productId
+                    }
+                }
+            });
+            const groups = this.productAttributeGroupDao.findAll();
 
-            const imagesQuery = sql.getDialect()
-                .select()
-                .column('PRODUCTIMAGE_IMAGELINK')
-                .column('PRODUCTIMAGE_ISFEATURE')
-                .from('CODBEX_PRODUCTIMAGE')
-                .where('PRODUCTIMAGE_PRODUCT = ?')
-                .build();
+            const groupMap = new Map(
+                groups.map(g => [g.Id, g.Name])
+            );
 
-            const availabilityQuery = sql.getDialect()
-                .select()
-                .column('PRODUCTAVAILABILITY_QUANTITY')
-                .from('CODBEX_PRODUCTAVAILABILITY')
-                .where(`PRODUCTAVAILABILITY_PRODUCT = ?`)
-                .build();
-
-            const productsResult = query.execute(productQuery, [productId]).at(0);
+            const attributeResult = attributes.map(attr => ({
+                ...attr,
+                GroupName: groupMap.get(attr.Group) ?? null
+            }));
 
             if (!productsResult) {
                 response.setStatus(response.BAD_REQUEST);
@@ -215,39 +215,36 @@ class ProductService {
                 );
             }
 
-            const imagesResult = query.execute(imagesQuery, [productId]);
-            const availabilityResult = query.execute(availabilityQuery, [productId]).at(0);
-            const attributeResult = query.execute(attributeQuery, [productId]);
             const productCampaign = productUtils.getCampaign(productId);
 
-            const featuredImage = imagesResult.find(img => img.PRODUCTIMAGE_ISFEATURE === true);
+            const featuredImage = imagesResult.find(img => img.IsFeature === true);
 
-            const currencyCode = productUtils.getCurrencyCode(productsResult.PRODUCT_CURRENCY);
+            const currencyCode = utils.getCurrencyCode(productsResult.Currency);
 
             const productAttributes: Record<string, { name: string; value: string }[]> = {};
             for (const attr of attributeResult) {
-                const groupName = attr.PRODUCTATTRIBUTEGROUP_NAME || "Ungrouped";
+                const groupName = attr.GroupName || "Ungrouped";
 
                 if (!productAttributes[groupName]) {
                     productAttributes[groupName] = [];
                 }
 
                 productAttributes[groupName].push({
-                    name: attr.PRODUCTATTRIBUTE_NAME,
-                    value: attr.PRODUCTATTRIBUTE_VALUE
+                    name: attr.Name,
+                    value: attr.Value
                 });
             }
 
             return {
-                id: String(productsResult.PRODUCT_ID),
-                sku: productsResult.PRODUCT_SKU,
-                title: productsResult.PRODUCT_TITLE,
-                category: String(productsResult.PRODUCT_CATEGORY),
-                brand: String(productsResult.PRODUCT_MANUFACTURER),
-                description: productsResult.PRODUCT_DESCRIPTION,
-                shortDescription: productsResult.PRODUCT_SHORTDESCRIPTION,
+                id: String(productsResult.Id),
+                sku: productsResult.SKU,
+                title: productsResult.Title,
+                category: String(productsResult.Category),
+                brand: String(productsResult.Manufacturer),
+                description: productsResult.Description,
+                shortDescription: productsResult.ShortDescription,
                 price: {
-                    amount: productCampaign ? productCampaign.newPrice : productsResult.PRODUCT_PRICE,
+                    amount: productCampaign ? productCampaign.newPrice : productsResult.Price,
                     currency: currencyCode,
                 } as Money,
                 discountPrice: productCampaign
@@ -257,9 +254,9 @@ class ProductService {
                     ? { amount: productCampaign.oldPrice, currency: currencyCode } as Money
                     : null,
                 discountPercentage: productCampaign?.discountPercentage ?? null,
-                availableForSale: availabilityResult.PRODUCTAVAILABILITY_QUANTITY > 0,
-                featuredImage: featuredImage ? featuredImage.PRODUCTIMAGE_IMAGELINK : null,
-                images: imagesResult.map(img => img.PRODUCTIMAGE_IMAGELINK),
+                availableForSale: availabilityResult.Quantity > 0,
+                featuredImage: featuredImage ? featuredImage.ImageLink : null,
+                images: imagesResult.map(img => img.ImageLink),
                 attributes: productAttributes
             };
         } catch (error: any) {
@@ -278,29 +275,21 @@ class ProductService {
             const categoryId = ctx.pathParameters.categoryId;
 
             if (!categoryId) {
-                response.setStatus(response.BAD_REQUEST);
+                response.setStatus(response.UNPROCESSABLE_CONTENT);
                 return utils.createErrorResponse(
-                    response.BAD_REQUEST,
+                    response.UNPROCESSABLE_CONTENT,
                     'Invalid request',
                     'Category ID is required'
                 );
             }
 
-            const productQuery = sql.getDialect()
-                .select()
-                .column('PRODUCT_ID')
-                .column('PRODUCT_TITLE')
-                .column('PRODUCT_SKU')
-                .column('PRODUCT_PRICE')
-                .column('PRODUCT_SHORTDESCRIPTION')
-                .column('PRODUCT_CURRENCY')
-                .column('PRODUCT_MANUFACTURER')
-                .column('PRODUCT_CATEGORY')
-                .from('CODBEX_PRODUCT')
-                .where('PRODUCT_CATEGORY = ?')
-                .build();
-
-            const products = query.execute(productQuery, [categoryId]);
+            const products = this.productDao.findAll({
+                $filter: {
+                    equals: {
+                        Category: categoryId
+                    }
+                }
+            });
 
             if (products.length === 0) {
                 response.setStatus(response.BAD_REQUEST);
@@ -311,7 +300,7 @@ class ProductService {
                 );
             }
 
-            const productIds = products.map(p => p.PRODUCT_ID);
+            const productIds = products.map(p => p.Id);
 
             const productsResponse = productUtils.getProductsResponse(productIds, products);
 
