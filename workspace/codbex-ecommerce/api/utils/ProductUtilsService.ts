@@ -4,6 +4,7 @@ import { CampaignRepository } from "codbex-products/gen/codbex-products/dao/Camp
 import { CurrencyRepository } from "codbex-currencies/gen/codbex-currencies/dao/Settings/CurrencyRepository";
 import { CampaignEntryRepository } from "codbex-products/gen/codbex-products/dao/Products/CampaignEntryRepository";
 import { ProductImageRepository } from "codbex-products/gen/codbex-products/dao/Products/ProductImageRepository";
+import { ProductRepository } from "codbex-products/gen/codbex-products/dao/Products/ProductRepository";
 import { ProductAvailabilityRepository } from "codbex-inventory/gen/codbex-inventory/dao/Products/ProductAvailabilityRepository";
 
 const CurrencyDao = new CurrencyRepository();
@@ -11,6 +12,11 @@ const ProductAvailabilityDao = new ProductAvailabilityRepository();
 const ProductImageDao = new ProductImageRepository();
 const CampaignEntryDao = new CampaignEntryRepository();
 const CampaignDao = new CampaignRepository();
+const ProductDao = new ProductRepository();
+
+export function getLimitedProductEntities(productIds: number[]) {
+    return productIds.map(p => ProductDao.findById(p));
+}
 
 export function getProductsResponse(productIds: any[], products: any[]) {
     const imageMap = getProductsImages(productIds);
@@ -59,10 +65,13 @@ export function productsIdsInCampaign(productIds: number[]): number[] {
 
     for (const productId of productIds) {
         const campaign = getCampaign(productId);
+        console.log("camp", JSON.stringify(campaign));
         if (campaign) {
             activeProducts.push(productId);
         }
     }
+
+    console.log("active pro", JSON.stringify(activeProducts));
 
     return activeProducts;
 }
@@ -99,6 +108,8 @@ export function getCampaign(productId: number) {
     today.setHours(0, 0, 0, 0);
 
     const isTodayInRange = today >= startDate && today <= endDate;
+
+    console.log(isTodayInRange);
 
     return isTodayInRange
         ? {
@@ -153,6 +164,7 @@ export function getProductsAvailability(productIds: string[]): Map<string, boole
 export function mapProductIdToCurrencyCode(products: any): Map<number, string> {
 
     const currencyIds = products.map(p => p.Currency);
+
     const currencies = currencyIds.map(id => CurrencyDao.findById(id))
 
     const currencyMap = new Map(currencies.map(c => [c.Id, c.Code]));

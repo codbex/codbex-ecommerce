@@ -1,5 +1,4 @@
-import { Controller, Get, response } from "sdk/http";
-import { query, sql } from 'sdk/db';
+import { Controller, Get, response, request } from "sdk/http";
 import * as utils from './utils/UtilsService';
 import * as productUtils from './utils/ProductUtilsService';
 import { Money, ErrorResponse, ProductResponse } from './types/Types';
@@ -81,13 +80,15 @@ class ProductService {
         }
     }
 
-    //put limit
     @Get("/products/promotions")
     public productPromotionsData(): ProductResponse[] | ErrorResponse {
-        try {
-            const products = this.productDao.findAll();
+        const limitStr = request.getParameter("limit");
+        const limit = limitStr !== null && !isNaN(parseInt(limitStr)) ? parseInt(limitStr) : undefined;
 
-            if (products.length === 0) {
+        try {
+            const allProducts = this.productDao.findAll();
+
+            if (allProducts.length === 0) {
                 response.setStatus(response.BAD_REQUEST);
                 return utils.createErrorResponse(
                     response.BAD_REQUEST,
@@ -96,9 +97,24 @@ class ProductService {
                 );
             }
 
-            const productIds = products.map(p => p.Id);
+            const productIds = allProducts.map(p => p.Id);
             const productsInCampaign = productUtils.productsIdsInCampaign(productIds);
-            const productsResponse = productUtils.getProductsResponse(productsInCampaign, products);
+
+            let limitedProducts = [];
+
+            if (limit !== undefined && !isNaN(limit)) {
+                let count = 0;
+                while (count < limit && productsInCampaign[count]) {
+                    limitedProducts.push(productsInCampaign[count]);
+                    count++;
+                }
+            } else {
+                limitedProducts = productsInCampaign.slice();
+            }
+
+            const limitedProductEntities = productUtils.getLimitedProductEntities(limitedProducts);
+
+            const productsResponse = productUtils.getProductsResponse(productsInCampaign, limitedProductEntities);
 
             return productsResponse;
 
