@@ -34,10 +34,12 @@ class ProductService {
         try {
             const allProducts = this.productDao.findAll();
 
-            const products = allProducts.filter(product =>
-                product.Title.toLowerCase().includes(searchText.toLowerCase()) ||
-                product.ShortDescription.toLowerCase().includes(searchText.toLowerCase())
-            );
+            const products = allProducts
+                .filter(product =>
+                    product.Title.toLowerCase().includes(searchText.toLowerCase()) ||
+                    product.ShortDescription.toLowerCase().includes(searchText.toLowerCase())
+                )
+                .slice(0, 19);
 
             if (!products || products.length === 0) {
                 return [];
