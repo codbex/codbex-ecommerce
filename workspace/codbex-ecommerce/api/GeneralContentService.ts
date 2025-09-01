@@ -25,13 +25,13 @@ class GeneralContentService {
 
     @Get("/content/menu")
     public menuData() {
-        this.getContent("menu.json");
+        return this.getContent("menu.json");
 
     }
 
     @Get("/content/footer")
     public footerData() {
-        this.getContent("footer.json");
+        return this.getContent("footer.json");
     }
 
     @Get("/categories")
