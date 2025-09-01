@@ -27,43 +27,37 @@ class ProductService {
         this.productAttributeGroupDao = new ProductAttributeGroupDao();
     }
 
-    //implement without query builder
     @Get("products/search/:text")
     public productsSearch(_: any, ctx: any) {
 
         const searchText = ctx.pathParameters.text;
         try {
-            const productSearchQuery = sql.getDialect()
-                .select()
-                .column('PRODUCT_ID')
-                .column('PRODUCT_TITLE')
-                .column('PRODUCT_PRICE')
-                .column('PRODUCT_CURRENCY')
-                .from('CODBEX_PRODUCT')
-                .where('UPPER(PRODUCT_TITLE) LIKE UPPER(?) OR UPPER(PRODUCT_DESCRIPTION) LIKE UPPER(?)')
-                .limit(20)
-                .build();
+            const allProducts = this.productDao.findAll();
 
-            const products = query.execute(productSearchQuery, ["%" + searchText + "%", "%" + searchText + "%"]);
+            const products = allProducts.filter(product =>
+                product.Title.toLowerCase().includes(searchText.toLowerCase()) ||
+                product.ShortDescription.toLowerCase().includes(searchText.toLowerCase())
+            );
 
             if (!products || products.length === 0) {
                 return [];
             }
 
-            const productIds = products.map(p => p.PRODUCT_ID);
+            const productIds = products.map(p => p.Id);
             const imageMap = productUtils.getProductsImages(productIds);
+
             const currencyMap = productUtils.mapProductIdToCurrencyCode(products);
 
             const productsResponse = products.map(p => {
-                const imageData = imageMap.get(p.PRODUCT_ID) ?? { featuredImage: null, images: [] };
-                const currencyCode = currencyMap.get(p.PRODUCT_ID) ?? 'UNKNOWN';
-                const productCampaign = productUtils.getCampaign(p.PRODUCT_ID);
+                const imageData = imageMap.get(p.Id) ?? { featuredImage: null, images: [] };
+                const currencyCode = currencyMap.get(p.Id) ?? 'UNKNOWN';
+                const productCampaign = productUtils.getCampaign(p.Id);
 
                 return {
-                    id: String(p.PRODUCT_ID),
-                    title: p.PRODUCT_TITLE,
+                    id: String(p.Id),
+                    title: p.Title,
                     price: {
-                        amount: productCampaign ? productCampaign.newPrice : p.PRODUCT_PRICE,
+                        amount: productCampaign ? productCampaign.newPrice : p.Price,
                         currency: currencyCode,
                     } as Money,
                     oldPrice: productCampaign
@@ -84,6 +78,7 @@ class ProductService {
             );
         }
     }
+
     //put limit
     @Get("/products/promotions")
     public productPromotionsData(): ProductResponse[] | ErrorResponse {
