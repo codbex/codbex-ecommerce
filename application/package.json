@@ -15,6 +15,5 @@
     "@codbex/codbex-number-generator": "^0.4.0",
     "@codbex/codbex-number-generator-data": "^0.4.1",
     "@codbex/custom-hayat-data": "^0.6.0",
-    "@codbex/codbex-currencies-data": "^1.0.0"
   }
 }
