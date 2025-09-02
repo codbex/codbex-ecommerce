@@ -4,6 +4,7 @@ import * as productUtils from './utils/ProductUtilsService';
 import { Money, ErrorResponse, ProductResponse } from './types/Types';
 
 import { ProductRepository as ProductDao } from "codbex-products/gen/codbex-products/dao/Products/ProductRepository";
+import { ProductCategoryRepository as ProductCategoryDao } from "codbex-products/gen/codbex-products/dao/Settings/ProductCategoryRepository";
 import { ProductAttributeRepository as ProductAttributeDao } from "codbex-products/gen/codbex-products/dao/Products/ProductAttributeRepository";
 import { ProductImageRepository as ProductImageDao } from "codbex-products/gen/codbex-products/dao/Products/ProductImageRepository";
 import { ProductAvailabilityRepository as ProductAvailabilityDao } from "codbex-inventory/gen/codbex-inventory/dao/Products/ProductAvailabilityRepository";
@@ -17,9 +18,11 @@ class ProductService {
     private readonly productImageDao;
     private readonly productAvailabilityDao;
     private readonly productAttributeGroupDao;
+    private readonly productCategoryDao;
 
     constructor() {
         this.productDao = new ProductDao();
+        this.productCategoryDao = new ProductCategoryDao();
         this.productAttributeDao = new ProductAttributeDao();
         this.productImageDao = new ProductImageDao();
         this.productAvailabilityDao = new ProductAvailabilityDao();
@@ -280,6 +283,17 @@ class ProductService {
                     response.UNPROCESSABLE_CONTENT,
                     'Invalid request',
                     'Category ID is required'
+                );
+            }
+
+            const category = this.productCategoryDao.findById(categoryId);
+
+            if (!category) {
+                response.setStatus(response.BAD_REQUEST);
+                return utils.createErrorResponse(
+                    response.BAD_REQUEST,
+                    'Something went wrong',
+                    `Category with id ${categoryId} was not found`
                 );
             }
 
