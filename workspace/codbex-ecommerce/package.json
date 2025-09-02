@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@codbex/codbex-inventory": "^0.12.2",
-    "@codbex/codbex-orders": "^0.8.4",
+    "@codbex/codbex-orders": "^0.8.5",
     "@codbex/codbex-orders-processes": "^0.2.3",
     "@codbex/codbex-invoices": "^0.9.3"
   },
