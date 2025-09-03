@@ -1,12 +1,12 @@
 import { Controller, Get, response, request, client } from "sdk/http";
 import * as utils from './utils/UtilsService';
-import { Category, Brand, ErrorResponse, CountryResponse } from './types/Types';
+import { Category, Brand, ErrorResponse, CountryResponse, Company } from './types/Types';
 
 import { ManufacturerRepository as ManufacturerDao } from "codbex-partners/gen/codbex-partners/dao/Manufacturers/ManufacturerRepository";
 import { CountryRepository as CountryDao } from "codbex-countries/gen/codbex-countries/dao/Settings/CountryRepository";
 import { ProductCategoryRepository as ProductCategoryDao } from "codbex-products/gen/codbex-products/dao/Settings/ProductCategoryRepository";
 import { ProductRepository as ProductDao } from "codbex-products/gen/codbex-products/dao/Products/ProductRepository";
-
+import { CompanyRepository as CompanyDao } from "codbex-companies/gen/codbex-companies/dao/Companies/CompanyRepository";
 
 @Controller
 class GeneralContentService {
@@ -15,12 +15,14 @@ class GeneralContentService {
     private readonly countryDao;
     private readonly productCategoryDao;
     private readonly productDao;
+    private readonly companyDao;
 
     constructor() {
         this.manufacturerDao = new ManufacturerDao();
         this.countryDao = new CountryDao();
         this.productCategoryDao = new ProductCategoryDao();
         this.productDao = new ProductDao();
+        this.companyDao = new CompanyDao();
     }
 
     @Get("/content/menu")
@@ -65,6 +67,28 @@ class GeneralContentService {
             return categories;
 
         } catch (error: any) {
+            response.setStatus(response.INTERNAL_SERVER_ERROR);
+            return utils.createErrorResponse(response.INTERNAL_SERVER_ERROR, 'Something went wrong', error);
+        }
+    }
+
+    @Get("/company")
+    public companyData(): Company[] | ErrorResponse {
+        try {
+            const company = this.companyDao.findById(1);
+
+            if (!company) {
+                response.setStatus(response.BAD_REQUEST);
+                return utils.createErrorResponse(response.BAD_REQUEST, 'Something went wrong', 'Cannot find company');
+            }
+
+            return {
+                name: company.Name,
+                email: company.Email,
+                address: company.Address
+            };
+        }
+        catch (error: any) {
             response.setStatus(response.INTERNAL_SERVER_ERROR);
             return utils.createErrorResponse(response.INTERNAL_SERVER_ERROR, 'Something went wrong', error);
         }
