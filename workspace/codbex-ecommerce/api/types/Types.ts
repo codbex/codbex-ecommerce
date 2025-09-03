@@ -1,3 +1,9 @@
+export interface Company {
+    name: string;
+    email: string;
+    address: string;
+}
+
 export interface ErrorResponse {
     errorType: string;
     errorMessage: string;
