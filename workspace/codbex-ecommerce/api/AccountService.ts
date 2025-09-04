@@ -126,12 +126,7 @@ class AccountService {
             });
 
             if (customerAddresses.length === 0) {
-                response.setStatus(response.BAD_REQUEST);
-                return utils.createErrorResponse(
-                    response.BAD_REQUEST,
-                    'Something went wrong',
-                    `This customer has no saved addresses ${customerId}`
-                );
+               return [];
             }
 
             const mappedAddresses = accountUtils.mapAddresses(customerAddresses);
