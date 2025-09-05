@@ -10,7 +10,7 @@
     "@codbex/ide-branding": "^0.1.0",
     "@codbex/codbex-inventory": "^0.12.5",
     "@codbex/codbex-orders": "^0.8.8",
-    "@codbex/codbex-orders-processes": "^0.2.9",
+    "@codbex/codbex-orders-processes": "^0.2.10",
     "@codbex/codbex-partners": "^0.9.3",
     "@codbex/codbex-number-generator": "^0.4.0",
     "@codbex/codbex-number-generator-data": "^0.4.1",
