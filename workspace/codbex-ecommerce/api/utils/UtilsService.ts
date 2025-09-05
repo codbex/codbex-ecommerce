@@ -43,26 +43,8 @@ export function createErrorResponse(
     };
 }
 
-// function getColumnByWhere<T>(
-//     table: string,
-//     column: string,
-//     whereClause: string,
-//     params: any[]
-// ): T | undefined {
-//     const q = sql.getDialect()
-//         .select()
-//         .column(column)
-//         .from(table)
-//         .where(whereClause)
-//         .build();
-
-//     const result = query.execute(q, params);
-//     return result.length === 0 ? undefined : result[0][column] as T;
-// }
-
 export function getCustomerByAddress(addressId: number) {
     return CustomerAddressDao.findById(addressId).Customer;
-    // return getColumnByWhere<number>('CODBEX_CUSTOMERADDRESS', 'CUSTOMERADDRESS_CUSTOMER', 'CUSTOMERADDRESS_ID = ?', [addressId]);
 }
 
 export function getCustomerByIdentifier(identifier: string) {
@@ -73,7 +55,6 @@ export function getCustomerByIdentifier(identifier: string) {
             }
         }
     })[0].Id;
-    // return getColumnByWhere<number>('CODBEX_CUSTOMER', 'CUSTOMER_ID', 'CUSTOMER_IDENTIFIER = ?', [identifier]);
 }
 
 export function getCustomerEmail(id: number) {
