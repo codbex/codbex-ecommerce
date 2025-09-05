@@ -11,6 +11,8 @@ export function mapAddresses(allAddresses: any[]): { shippingAddress: Address[];
 
     const mappedAddresses = allAddresses.map(row => {
 
+          if (!row) return {};
+
         const countryCode = utils.getCountryCode(row.Country);
         const countryName = utils.getCountryName(row.Country);
         const city = utils.getCityName(row.City);
