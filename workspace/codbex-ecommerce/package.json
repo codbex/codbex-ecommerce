@@ -9,8 +9,8 @@
     "registry": "https://npm.pkg.github.com"
   },
   "dependencies": {
-    "@codbex/codbex-inventory": "^0.12.5",
-    "@codbex/codbex-orders": "^0.8.9",
+    "@codbex/codbex-inventory": "^0.12.6",
+    "@codbex/codbex-orders": "^0.9.0",
     "@codbex/codbex-orders-processes": "^0.2.12",
     "@codbex/codbex-invoices": "^0.9.4"
   },
