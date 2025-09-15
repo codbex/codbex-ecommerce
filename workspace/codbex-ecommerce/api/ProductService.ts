@@ -210,7 +210,10 @@ class ProductService {
                 }
             });
 
-            console.log(JSON.stringify(documents));
+            const documentsResult = documents.map(item => ({
+                name: item.Name,
+                link: item.Link
+            }));
 
             const groups = this.productAttributeGroupDao.findAll();
 
@@ -274,7 +277,8 @@ class ProductService {
                 availableForSale: availabilityResult.Quantity > 0,
                 featuredImage: featuredImage ? featuredImage.ImageLink : null,
                 images: imagesResult.map(img => img.ImageLink),
-                attributes: productAttributes
+                attributes: productAttributes,
+                documents: documentsResult
             };
         } catch (error: any) {
             response.setStatus(response.INTERNAL_SERVER_ERROR);
