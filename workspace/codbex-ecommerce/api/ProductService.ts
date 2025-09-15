@@ -64,11 +64,11 @@ class ProductService {
                     id: String(p.Id),
                     title: p.Title,
                     price: {
-                        amount: productCampaign ? productCampaign.newPrice : p.Price,
+                        amount: productCampaign ? productUtils.calculateGrossPrice(productCampaign.newPrice, p.VATRate) : productUtils.calculateGrossPrice(p.Price, p.VATRate),
                         currency: currencyCode,
                     } as Money,
                     oldPrice: productCampaign
-                        ? { amount: productCampaign.oldPrice, currency: currencyCode } as Money
+                        ? { amount: productUtils.calculateGrossPrice(productCampaign.oldPrice, p.VATRate), currency: currencyCode } as Money
                         : null,
                     featuredImage: imageData.featuredImage
                 };
@@ -186,6 +186,7 @@ class ProductService {
                     }
                 }
             });
+
             const availabilityResult = this.productAvailabilityDao.findAll({
                 $filter: {
                     equals: {
@@ -264,17 +265,17 @@ class ProductService {
                 description: productsResult.Description,
                 shortDescription: productsResult.ShortDescription,
                 price: {
-                    amount: productCampaign ? productCampaign.newPrice : productsResult.Price,
+                    amount: productCampaign ? productUtils.calculateGrossPrice(productCampaign.newPrice, productsResult.VATRate) : productUtils.calculateGrossPrice(productsResult.Price, productsResult.VATRate),
                     currency: currencyCode,
                 } as Money,
                 discountPrice: productCampaign
-                    ? { amount: productCampaign.newPrice, currency: currencyCode } as Money
+                    ? { amount: productUtils.calculateGrossPrice(productCampaign.newPrice, productsResult.VATRate), currency: currencyCode } as Money
                     : null,
                 oldPrice: productCampaign
-                    ? { amount: productCampaign.oldPrice, currency: currencyCode } as Money
+                    ? { amount: productUtils.calculateGrossPrice(productCampaign.oldPrice, productsResult.VATRate), currency: currencyCode } as Money
                     : null,
                 discountPercentage: productCampaign?.discountPercentage ?? null,
-                availableForSale: availabilityResult.Quantity > 0,
+                availableForSale: availabilityResult ? availabilityResult.Quantity > 0 : false,
                 featuredImage: featuredImage ? featuredImage.ImageLink : null,
                 images: imagesResult.map(img => img.ImageLink),
                 attributes: productAttributes,

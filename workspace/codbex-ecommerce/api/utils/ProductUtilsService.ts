@@ -14,6 +14,14 @@ const CampaignEntryDao = new CampaignEntryRepository();
 const CampaignDao = new CampaignRepository();
 const ProductDao = new ProductRepository();
 
+
+export function calculateGrossPrice(net: number | undefined, vatRate: number | undefined): number | undefined {
+    if (net === undefined || vatRate === undefined) {
+        return undefined;
+    }
+    return net * (1 + vatRate / 100);
+}
+
 export function getLimitedProductEntities(productIds: number[]) {
     return productIds.map(p => ProductDao.findById(p));
 }
@@ -37,14 +45,14 @@ export function getProductsResponse(productIds: any[], products: any[]) {
             title: p.Title,
             shortDescription: p.ShortDescription,
             price: {
-                amount: productCampaign ? productCampaign.newPrice : p.Price,
+                amount: productCampaign ? calculateGrossPrice(productCampaign.newPrice, p.VATRate) : calculateGrossPrice(p.Price, p.VATRate),
                 currency: currencyCode,
             } as Money,
             discountPrice: productCampaign
-                ? { amount: productCampaign.newPrice, currency: currencyCode } as Money
+                ? { amount: calculateGrossPrice(productCampaign.newPrice, p.VATRate), currency: currencyCode } as Money
                 : null,
             oldPrice: productCampaign
-                ? { amount: productCampaign.oldPrice, currency: currencyCode } as Money
+                ? { amount: calculateGrossPrice(productCampaign.oldPrice, p.VATRate), currency: currencyCode } as Money
                 : null,
             brand: String(p.Manufacturer),
             discountPercentage: productCampaign?.discountPercentage ?? null,
@@ -65,13 +73,10 @@ export function productsIdsInCampaign(productIds: number[]): number[] {
 
     for (const productId of productIds) {
         const campaign = getCampaign(productId);
-        console.log("camp", JSON.stringify(campaign));
         if (campaign) {
             activeProducts.push(productId);
         }
     }
-
-    console.log("active pro", JSON.stringify(activeProducts));
 
     return activeProducts;
 }
@@ -108,8 +113,6 @@ export function getCampaign(productId: number) {
     today.setHours(0, 0, 0, 0);
 
     const isTodayInRange = today >= startDate && today <= endDate;
-
-    console.log(isTodayInRange);
 
     return isTodayInRange
         ? {
