@@ -14,6 +14,6 @@
     "@codbex/codbex-partners": "^0.9.3",
     "@codbex/codbex-number-generator": "^0.4.0",
     "@codbex/codbex-number-generator-data": "^0.4.1",
-    "@codbex/custom-hayat-data": "^0.6.7"
+    "@codbex/custom-hayat-data": "^0.6.9"
   }
 }
