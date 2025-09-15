@@ -39,7 +39,7 @@ class ProductService {
             const products = allProducts
                 .filter(product =>
                     product.Title.toLowerCase().includes(searchText.toLowerCase()) ||
-                    product.ShortDescription.toLowerCase().includes(searchText.toLowerCase())
+                    product.ShortDescription?.toLowerCase().includes(searchText.toLowerCase())
                 )
                 .slice(0, 19);
 
