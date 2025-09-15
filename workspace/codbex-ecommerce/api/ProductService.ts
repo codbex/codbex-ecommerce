@@ -4,6 +4,7 @@ import * as productUtils from './utils/ProductUtilsService';
 import { Money, ErrorResponse, ProductResponse } from './types/Types';
 
 import { ProductRepository as ProductDao } from "codbex-products/gen/codbex-products/dao/Products/ProductRepository";
+import { ProductDocumentRepository as ProductDocumentDao } from "codbex-products/gen/codbex-products/dao/Products/ProductDocumentRepository";
 import { ProductCategoryRepository as ProductCategoryDao } from "codbex-products/gen/codbex-products/dao/Settings/ProductCategoryRepository";
 import { ProductAttributeRepository as ProductAttributeDao } from "codbex-products/gen/codbex-products/dao/Products/ProductAttributeRepository";
 import { ProductImageRepository as ProductImageDao } from "codbex-products/gen/codbex-products/dao/Products/ProductImageRepository";
@@ -14,6 +15,7 @@ import { ProductAttributeGroupRepository as ProductAttributeGroupDao } from "cod
 class ProductService {
 
     private readonly productDao;
+    private readonly productDocumentDao;
     private readonly productAttributeDao;
     private readonly productImageDao;
     private readonly productAvailabilityDao;
@@ -22,6 +24,7 @@ class ProductService {
 
     constructor() {
         this.productDao = new ProductDao();
+        this.productDocumentDao = new ProductDocumentDao();
         this.productCategoryDao = new ProductCategoryDao();
         this.productAttributeDao = new ProductAttributeDao();
         this.productImageDao = new ProductImageDao();
@@ -198,6 +201,17 @@ class ProductService {
                     }
                 }
             });
+
+            const documents = this.productDocumentDao.findAll({
+                $filter: {
+                    equals: {
+                        Product: productId
+                    }
+                }
+            });
+
+            console.log(JSON.stringify(documents));
+
             const groups = this.productAttributeGroupDao.findAll();
 
             const groupMap = new Map(
