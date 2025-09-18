@@ -44,7 +44,7 @@ export function createErrorResponse(
 }
 
 export function getCustomerByAddress(addressId: number) {
-    return CustomerAddressDao.findById(addressId).Customer;
+    return CustomerAddressDao.findById(addressId)?.Customer;
 }
 
 export function getCustomerByIdentifier(identifier: string) {
@@ -54,18 +54,18 @@ export function getCustomerByIdentifier(identifier: string) {
                 Identifier: identifier
             }
         }
-    })[0].Id;
+    })[0]?.Id;
 }
 
 export function getCustomerEmail(id: number) {
-    return CustomerDao.findById(id).Email;
+    return CustomerDao.findById(id)?.Email;
 }
 
 export function getSalesOrderStatus(statusId: number) {
-    return SalesOrderStatusDao.findById(statusId).Name;
+    return SalesOrderStatusDao.findById(statusId)?.Name;
 }
 export function getCurrencyCode(currencyId: number) {
-    return CurrencyDao.findById(currencyId).Code;
+    return CurrencyDao.findById(currencyId)?.Code;
 }
 
 export function getCountryId(code3: string) {
@@ -79,11 +79,11 @@ export function getCountryId(code3: string) {
 }
 
 export function getCountryCode(countryId: number) {
-    return CountryDao.findById(countryId).Code3;
+    return CountryDao.findById(countryId)?.Code3;
 }
 
 export function getCountryName(countryId: number) {
-    return CountryDao.findById(countryId).Name;
+    return CountryDao.findById(countryId)?.Name;
 }
 
 export function getCityId(cityName: string) {
@@ -93,15 +93,15 @@ export function getCityId(cityName: string) {
                 Name: cityName
             }
         }
-    })[0].Id;
+    })[0]?.Id;
 }
 
 export function getCityName(cityId: number) {
-    return CityDao.findById(cityId).Name;
+    return CityDao.findById(cityId)?.Name;
 }
 
 export function getSentMethodName(sentMethodId: number) {
-    return SentMethodDao.findById(sentMethodId).Name;
+    return SentMethodDao.findById(sentMethodId)?.Name;
 }
 
 export function getAddressId(addressName: string) {
@@ -111,9 +111,9 @@ export function getAddressId(addressName: string) {
                 Name: addressName
             }
         }
-    })[0].Id;
+    })[0]?.Id;
 }
 
 export function getCustomerByOrder(orderId: number) {
-    return SalesOrderDao.findById(orderId).Customer;
+    return SalesOrderDao.findById(orderId)?.Customer;
 }
