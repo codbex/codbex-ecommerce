@@ -6,12 +6,22 @@ import { SalesOrderRepository } from "codbex-orders/gen/codbex-orders/dao/SalesO
 import { ProductRepository } from "codbex-products/gen/codbex-products/dao/Products/ProductRepository";
 import { CurrencyRepository } from "codbex-currencies/gen/codbex-currencies/dao/Settings/CurrencyRepository";
 import { ProductImageRepository } from "codbex-products/gen/codbex-products/dao/Products/ProductImageRepository";
+import { CampaignRepository } from "codbex-products/gen/codbex-products/dao/Campaigns/CampaignRepository";
+import { CampaignEntryRepository } from "codbex-products/gen/codbex-products/dao/Products/CampaignEntryRepository";
+
+const SalesOrderItemDao = new SalesOrderItemRepository();
+const SalesOrderDao = new SalesOrderRepository();
+const ProductDao = new ProductRepository();
+const CurrencyDao = new CurrencyRepository();
+const ProductImageDao = new ProductImageRepository();
+const CampaignDao = new CampaignRepository();
+const CampaignEntryDao = new CampaignEntryRepository();
 
 export function mapAddresses(allAddresses: any[]): { shippingAddress: Address[]; billingAddress: Address[]; } {
 
     const mappedAddresses = allAddresses.map(row => {
 
-          if (!row) return {};
+        if (!row) return {};
 
         const countryCode = utils.getCountryCode(row.Country);
         const countryName = utils.getCountryName(row.Country);
@@ -49,12 +59,6 @@ export function mapAddresses(allAddresses: any[]): { shippingAddress: Address[];
 
 export function getSalesOrderItems(salesorderId: number) {
 
-    const SalesOrderItemDao = new SalesOrderItemRepository();
-    const SalesOrderDao = new SalesOrderRepository();
-    const ProductDao = new ProductRepository();
-    const CurrencyDao = new CurrencyRepository();
-    const ProductImageDao = new ProductImageRepository();
-
     const salesOrderItemsResult = SalesOrderItemDao.findAll({
         $filter: {
             equals: {
@@ -84,7 +88,7 @@ export function getSalesOrderItems(salesorderId: number) {
             title: product.Title,
             image: image[0].ImageLink,
             price: {
-                amount: product.Price,
+                amount: item.Gross,
                 currency: currency.Code,
             } as Money,
         }
