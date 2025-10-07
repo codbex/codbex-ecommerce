@@ -141,10 +141,10 @@ class GeneralContentService {
     }
 
     private getContent(file: string) {
-        const protocol = request.getScheme() + "://";
+        // const protocol = request.getScheme() + "://";
         const domain = request.getHeader("Host")
 
-        const clientResponse = client.get(`${protocol}${domain}/public/js/documents/api/documents.js/preview?path=/hayat-documents/${file}`);
+        const clientResponse = client.get(`https://${domain}/public/js/documents/api/documents.js/preview?path=/hayat-documents/${file}`);
 
         return JSON.parse(clientResponse.text);
     }
