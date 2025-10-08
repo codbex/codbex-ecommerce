@@ -1,5 +1,6 @@
-import { Controller, Get, response, request, client } from "sdk/http";
+import { Controller, Get, response } from "sdk/http";
 import * as utils from './utils/UtilsService';
+import { cmis } from "sdk/cms";
 import { Category, Brand, ErrorResponse, CountryResponse, Company } from './types/Types';
 
 import { ManufacturerRepository as ManufacturerDao } from "codbex-partners/gen/codbex-partners/dao/Manufacturers/ManufacturerRepository";
@@ -27,13 +28,13 @@ class GeneralContentService {
 
     @Get("/content/menu")
     public menuData() {
-        return this.getContent("menu.json");
+        return this.getContent("hayat-documents", "menu.json");
 
     }
 
     @Get("/content/footer")
     public footerData() {
-        return this.getContent("footer.json");
+        return this.getContent("hayat-documents", "footer.json");
     }
 
     @Get("/categories")
@@ -140,13 +141,30 @@ class GeneralContentService {
         }
     }
 
-    private getContent(file: string) {
-        // const protocol = request.getScheme() + "://";
-        const domain = request.getHeader("Host")
+    private getContent(folder: string, file: string) {
+        try {
+            const session = cmis.getSession();
+            const documentPath = `/${folder}/${file}`;
 
-        const clientResponse = client.get(`https://${domain}/public/js/documents/api/documents.js/preview?path=/hayat-documents/${file}`);
+            const document = session.getObjectByPath(documentPath);
 
-        return JSON.parse(clientResponse.text);
+            const contentStream = document.getContentStream();
+            if (!contentStream) {
+                response.setStatus(response.INTERNAL_SERVER_ERROR);
+                return utils.createErrorResponse(
+                    response.INTERNAL_SERVER_ERROR,
+                    `${documentPath} has no content`
+                );
+            }
+
+            const text = contentStream.getStream().readText();
+            return JSON.parse(text);
+
+        } catch (error: any) {
+            response.setStatus(response.INTERNAL_SERVER_ERROR);
+            return utils.createErrorResponse(response.INTERNAL_SERVER_ERROR, 'Something went wrong', error);
+        }
     }
 
 }
+
